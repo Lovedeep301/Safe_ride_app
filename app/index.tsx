@@ -14,10 +14,32 @@ export default function IndexScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const rootNavigationState = useRootNavigationState();
 
+  // Wait for navigation state to be fully initialized
+  if (!rootNavigationState?.key) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          <View style={styles.logoContainer}>
+            <View style={styles.iconContainer}>
+              <Shield size={60} color="#2563EB" />
+            </View>
+            <Text style={styles.title}>Employee Safety Hub</Text>
+            <Text style={styles.subtitle}>
+              Secure communication and safety confirmation
+            </Text>
+          </View>
+
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#2563EB" />
+            <Text style={styles.loadingText}>Initializing...</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   useEffect(() => {
-    if (rootNavigationState?.key) {
-      checkAuthStatus();
-    }
+    checkAuthStatus();
   }, [rootNavigationState?.key]);
 
   const checkAuthStatus = async () => {
