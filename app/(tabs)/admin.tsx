@@ -13,7 +13,7 @@ import {
   Platform
 } from 'react-native';
 import { router } from 'expo-router';
-import { Users, Car, Plus, Search, Phone, Mail, MapPin, Settings, LogOut, Eye, EyeOff, UserPlus, Shield, TriangleAlert as AlertTriangle, MessageCircle, X, CreditCard as Edit, Trash2, Chrome as Home, User } from 'lucide-react-native';
+import { Users, Car, Plus, Search, Phone, Mail, MapPin, Settings, LogOut, Eye, EyeOff, UserPlus, Shield, TriangleAlert as AlertTriangle, MessageCircle, X, CreditCard as Edit, Trash2, Chrome as Home, User as UserIcon } from 'lucide-react-native';
 import { AuthService, User } from '@/services/AuthService';
 import { EmergencyService } from '@/services/EmergencyService';
 import { GroupService, Group } from '@/services/GroupService';
@@ -535,7 +535,7 @@ export default function AdminPanel() {
       <View style={styles.profileCard}>
         <View style={styles.profileHeader}>
           <View style={styles.profileIcon}>
-            <User size={32} color="#2563EB" />
+            <UserIcon size={32} color="#2563EB" />
           </View>
           <View style={styles.profileInfo}>
             <Text style={styles.profileName}>{currentUser?.name}</Text>
@@ -954,7 +954,7 @@ export default function AdminPanel() {
         style={[styles.navItem, currentScreen === 'profile' && styles.navItemActive]}
         onPress={() => setCurrentScreen('profile')}
       >
-        <User size={20} color={currentScreen === 'profile' ? '#2563EB' : '#6B7280'} />
+        <UserIcon size={20} color={currentScreen === 'profile' ? '#2563EB' : '#6B7280'} />
         <Text style={[styles.navText, currentScreen === 'profile' && styles.navTextActive]}>
           Profile
         </Text>
