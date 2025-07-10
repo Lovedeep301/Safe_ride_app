@@ -53,16 +53,16 @@ export default function IndexScreen() {
       if (isAuthenticated) {
         // Route based on user role
         if (user?.role === 'driver') {
-          router.replace('/(driver-tabs)');
+          setTimeout(() => router.replace('/(driver-tabs)'), 0);
         } else {
-          router.replace('/(tabs)');
+          setTimeout(() => router.replace('/(tabs)'), 0);
         }
       } else {
-        router.replace('/auth');
+        setTimeout(() => router.replace('/auth'), 0);
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
-      router.replace('/auth');
+      setTimeout(() => router.replace('/auth'), 0);
     } finally {
       setIsLoading(false);
     }
