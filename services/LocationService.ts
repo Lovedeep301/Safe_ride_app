@@ -24,7 +24,7 @@ interface TrackingOptions {
   enableBatteryMonitoring?: boolean;
 }
 
-class LocationService {
+class LocationServiceClass {
   private watchId: number | null = null;
   private lastPosition: Location | null = null;
 
@@ -250,4 +250,4 @@ class LocationService {
   }
 }
 
-export const LocationService = new LocationService();
+export const LocationService = new LocationServiceClass();
