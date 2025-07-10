@@ -1,10 +1,30 @@
+import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
+import { router } from 'expo-router';
 import { Car, Users, MessageCircle, MapPin, Settings } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 
 export default function DriverTabLayout() {
   const currentUser = AuthService.getCurrentUser();
 
+  useEffect(() => {
+    // Check authentication and role
+    if (!AuthService.isAuthenticated()) {
+      router.replace('/auth');
+      return;
+    }
+
+    // Redirect non-drivers to employee interface
+    if (currentUser?.role !== 'driver') {
+      router.replace('/(tabs)');
+      return;
+    }
+  }, [currentUser]);
+
+  // Don't render if not authenticated or wrong role
+  if (!AuthService.isAuthenticated() || currentUser?.role !== 'driver') {
+    return null;
+  }
   return (
     <Tabs
       screenOptions={{

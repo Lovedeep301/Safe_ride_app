@@ -1,4 +1,6 @@
+import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
+import { router } from 'expo-router';
 import { Chrome as Home, Users, MessageCircle, Settings } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 
@@ -6,6 +8,24 @@ export default function TabLayout() {
   const currentUser = AuthService.getCurrentUser();
   const isAdmin = currentUser?.role === 'admin';
 
+  useEffect(() => {
+    // Check authentication and role
+    if (!AuthService.isAuthenticated()) {
+      router.replace('/auth');
+      return;
+    }
+
+    // Redirect drivers to their interface
+    if (currentUser?.role === 'driver') {
+      router.replace('/(driver-tabs)');
+      return;
+    }
+  }, [currentUser]);
+
+  // Don't render if not authenticated or wrong role
+  if (!AuthService.isAuthenticated() || currentUser?.role === 'driver') {
+    return null;
+  }
   return (
     <Tabs
       screenOptions={{

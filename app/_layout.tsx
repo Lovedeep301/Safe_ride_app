@@ -10,6 +10,7 @@ import {
   Inter_700Bold
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
+import { AuthService } from '@/services/AuthService';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,6 +30,10 @@ export default function RootLayout() {
     }
   }, [fontsLoaded, fontError]);
 
+  useEffect(() => {
+    // Initialize auth service
+    AuthService.initialize();
+  }, []);
   if (!fontsLoaded && !fontError) {
     return null;
   }

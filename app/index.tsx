@@ -23,9 +23,15 @@ export default function IndexScreen() {
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       const isAuthenticated = AuthService.isAuthenticated();
+      const user = AuthService.getCurrentUser();
       
       if (isAuthenticated) {
-        router.replace('/(tabs)');
+        // Route based on user role
+        if (user?.role === 'driver') {
+          router.replace('/(driver-tabs)');
+        } else {
+          router.replace('/(tabs)');
+        }
       } else {
         router.replace('/auth');
       }
