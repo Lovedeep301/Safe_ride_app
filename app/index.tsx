@@ -6,13 +6,14 @@ import {
   SafeAreaView,
   ActivityIndicator
 } from 'react-native';
-import { router, useRootNavigationState } from 'expo-router';
+import { router, useRootNavigationState, useRouter } from 'expo-router';
 import { Shield } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 
 export default function IndexScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const rootNavigationState = useRootNavigationState();
+  const routerInstance = useRouter();
 
   // Wait for navigation state to be fully initialized
   if (!rootNavigationState?.key) {
@@ -39,8 +40,11 @@ export default function IndexScreen() {
   }
 
   useEffect(() => {
-    checkAuthStatus();
-  }, [rootNavigationState?.key]);
+    // Only proceed when router is ready
+    if (router.isReady) {
+      checkAuthStatus();
+    }
+  }, [rootNavigationState?.key, router.isReady]);
 
   const checkAuthStatus = async () => {
     try {
