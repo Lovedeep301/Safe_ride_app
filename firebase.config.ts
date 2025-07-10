@@ -9,9 +9,9 @@ import { Platform } from 'react-native';
 // Your Firebase configuration
 // Replace these with your actual Firebase project credentials
 const firebaseConfig = {
-  apiKey: "your-api-key",
+  apiKey: "AIzaSyC4WwWudOsiyIWd8lr8V2ADJgcd_S12KJ4",
   authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
+  projectId: "v-safe-b7023",
   storageBucket: "your-project.appspot.com",
   messagingSenderId: "123456789",
   appId: "your-app-id",
