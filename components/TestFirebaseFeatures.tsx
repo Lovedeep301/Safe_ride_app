@@ -10,7 +10,7 @@ import {
   Alert,
   Platform
 } from 'react-native';
-import { MessageCircle, AlertTriangle, MapPin, Send, CheckCircle, Users } from 'lucide-react-native';
+import { MessageCircle, TriangleAlert as AlertTriangle, MapPin, Send, CircleCheck as CheckCircle, Users } from 'lucide-react-native';
 import { FirebaseMessageService } from '@/services/FirebaseMessageService';
 import { FirebaseEmergencyService } from '@/services/FirebaseEmergencyService';
 import { FirebaseLocationService } from '@/services/FirebaseLocationService';

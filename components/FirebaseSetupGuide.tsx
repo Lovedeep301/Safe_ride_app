@@ -9,7 +9,7 @@ import {
   Alert,
   Platform
 } from 'react-native';
-import { CheckCircle, AlertCircle, Copy, ExternalLink } from 'lucide-react-native';
+import { CircleCheck as CheckCircle, CircleAlert as AlertCircle, Copy, ExternalLink } from 'lucide-react-native';
 
 export default function FirebaseSetupGuide() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
