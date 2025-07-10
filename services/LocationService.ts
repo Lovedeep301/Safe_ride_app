@@ -34,11 +34,13 @@ class LocationServiceClass {
    * @returns Promise<Location>
    */
   async getCurrentLocation(): Promise<Location> {
+    // Check if geolocation is available
+    if (!navigator?.geolocation) {
+      console.warn('Geolocation is not supported by this browser, using default location');
+      return this.getDefaultLocation();
+    }
+
     try {
-      // Check if geolocation is available
-      if (!navigator.geolocation) {
-        throw new Error('Geolocation is not supported by this browser');
-      }
       
       const permission = await this.checkPermission();
       if (permission !== 'granted') {
