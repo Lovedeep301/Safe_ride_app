@@ -24,16 +24,10 @@ interface TrackingOptions {
   enableBatteryMonitoring?: boolean;
 }
 
-// ------------------------
-// 2. MAIN SERVICE CLASS
-// ------------------------
 class LocationService {
   private watchId: number | null = null;
   private lastPosition: Location | null = null;
 
-  // ------------------------
-  // 3. CORE METHODS
-  // ------------------------
 
   /**
    * Get current location with optional address
@@ -41,9 +35,20 @@ class LocationService {
    */
   async getCurrentLocation(): Promise<Location> {
     try {
+      // Check if geolocation is available
+      if (!navigator.geolocation) {
+        throw new Error('Geolocation is not supported by this browser');
+      }
+      
       const permission = await this.checkPermission();
       if (permission !== 'granted') {
-        throw new Error('Location permission not granted');
+        // Try to request permission by attempting to get position
+        try {
+          const position = await this.getPosition('single');
+          return this.processPosition(position);
+        } catch (error) {
+          throw new Error('Location permission not granted');
+        }
       }
 
       const position = await this.getPosition('single');
@@ -63,6 +68,11 @@ class LocationService {
     callback: (location: Location) => void,
     options: TrackingOptions = {}
   ): void {
+    if (!navigator.geolocation) {
+      console.error('Geolocation is not supported by this browser');
+      return;
+    }
+    
     this.stopTracking(); // Clear any existing watcher
 
     this.watchId = navigator.geolocation.watchPosition(
@@ -95,9 +105,6 @@ class LocationService {
     }
   }
 
-  // ------------------------
-  // 4. HELPER METHODS
-  // ------------------------
 
   private async processPosition(position: GeolocationPosition): Promise<Location> {
     const location: Location = {
@@ -121,16 +128,23 @@ class LocationService {
   }
 
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
-    // Implement your geocoding service here (Google Maps, Mapbox, etc.)
-    // Example:
-    // const response = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=YOUR_TOKEN`);
-    // const data = await response.json();
-    // return data.features[0]?.place_name || '';
+    try {
+      // For demo purposes, return a formatted address
+      // In production, integrate with a real geocoding service
     return `Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    } catch (error) {
+      console.error('Geocoding error:', error);
+      return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
   }
 
   private getPosition(mode: 'single' | 'tracking'): Promise<GeolocationPosition> {
     return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported'));
+        return;
+      }
+      
       navigator.geolocation.getCurrentPosition(
         resolve,
         reject,
@@ -163,9 +177,6 @@ class LocationService {
     return R * c;
   }
 
-  // ------------------------
-  // 5. PERMISSION HANDLING
-  // ------------------------
 
   private async checkPermission(): Promise<PermissionState> {
     try {
@@ -186,6 +197,9 @@ class LocationService {
    */
   async requestPermission(): Promise<boolean> {
     try {
+      if (!navigator.geolocation) {
+        return false;
+      }
       const position = await this.getPosition('single');
       return true;
     } catch (error) {
@@ -194,9 +208,6 @@ class LocationService {
     }
   }
 
-  // ------------------------
-  // 6. ERROR HANDLING
-  // ------------------------
 
   private getDefaultLocation(): Location {
     return {
@@ -215,12 +226,8 @@ class LocationService {
       timestamp: new Date().toISOString()
     };
     console.error('Location Error:', errorInfo);
-    // Add your error logging service here (Sentry, etc.)
   }
 
-  // ------------------------
-  // 7. BATTERY OPTIMIZATION
-  // ------------------------
 
   private monitorBattery(): void {
     if ('getBattery' in navigator) {
@@ -231,6 +238,8 @@ class LocationService {
             this.adjustTrackingForBattery();
           }
         });
+      }).catch((error: any) => {
+        console.warn('Battery monitoring not available:', error);
       });
     }
   }
@@ -241,7 +250,4 @@ class LocationService {
   }
 }
 
-// ------------------------
-// 8. EXPORT SINGLETON
-// ------------------------
-export const locationService = new LocationService();
+export const LocationService = new LocationService();

@@ -38,6 +38,7 @@ type AuthEventListener = (eventType: AuthEventType, user: User) => void;
 class AuthServiceClass {
   private currentUser: User | null = null;
   private listeners: AuthEventListener[] = [];
+  private isInitialized = false;
   
   // Mock user database with admin, driver, and employee accounts
   private users: User[] = [
@@ -246,6 +247,36 @@ class AuthServiceClass {
     }
   ];
 
+  // Initialize the service
+  initialize(): void {
+    if (this.isInitialized) return;
+    
+    try {
+      // Try to restore user from storage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem('currentUser');
+        if (stored) {
+          const userData = JSON.parse(stored);
+          // Validate that the user still exists and is active
+          const user = this.users.find(u => u.id === userData.id && u.isActive);
+          if (user) {
+            this.currentUser = user;
+          } else {
+            // Remove invalid stored user
+            localStorage.removeItem('currentUser');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error initializing auth service:', error);
+      // Clear invalid storage
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.removeItem('currentUser');
+      }
+    }
+    
+    this.isInitialized = true;
+  }
   // Event system methods
   addEventListener(listener: AuthEventListener): void {
     this.listeners.push(listener);
@@ -266,6 +297,7 @@ class AuthServiceClass {
   }
 
   async login(uniqueId: string, password?: string): Promise<boolean> {
+    try {
     const user = this.users.find(u => u.uniqueId.toLowerCase() === uniqueId.toLowerCase());
     
     if (user && user.isActive) {
@@ -285,37 +317,46 @@ class AuthServiceClass {
     }
     
     return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
+    }
   }
 
   logout(): void {
+    try {
     this.currentUser = null;
     if (typeof window !== 'undefined' && window.localStorage) {
       localStorage.removeItem('currentUser');
     }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   }
 
   getCurrentUser(): User | null {
+    if (!this.isInitialized) {
+      this.initialize();
+    }
+    
     if (this.currentUser) {
+      // Validate that the user still exists and is active
+      const user = this.users.find(u => u.id === this.currentUser!.id && u.isActive);
+      if (!user) {
+        this.logout();
+        return null;
+      }
       return this.currentUser;
     }
 
-    // Try to restore from storage
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const stored = localStorage.getItem('currentUser');
-      if (stored) {
-        try {
-          this.currentUser = JSON.parse(stored);
-          return this.currentUser;
-        } catch (error) {
-          console.error('Error parsing stored user:', error);
-        }
-      }
-    }
 
     return null;
   }
 
   isAuthenticated(): boolean {
+    if (!this.isInitialized) {
+      this.initialize();
+    }
     return this.getCurrentUser() !== null;
   }
 
@@ -343,6 +384,13 @@ class AuthServiceClass {
   }
 
   createUser(userData: Omit<User, 'id' | 'isActive' | 'lastSeen'>): User {
+    try {
+      // Validate unique ID
+      const existingUser = this.users.find(u => u.uniqueId.toLowerCase() === userData.uniqueId.toLowerCase());
+      if (existingUser) {
+        throw new Error('User ID already exists');
+      }
+      
     const newUser: User = {
       ...userData,
       id: `${userData.role}_${Date.now()}`,
@@ -355,10 +403,24 @@ class AuthServiceClass {
     this.notifyListeners('userCreated', newUser);
     
     return newUser;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
   }
 
   updateUser(userId: string, updates: Partial<User>): User | null {
+    try {
     const userIndex = this.users.findIndex(u => u.id === userId);
+      // If updating uniqueId, check for conflicts
+      if (updates.uniqueId) {
+        const existingUser = this.users.find(u => 
+          u.uniqueId.toLowerCase() === updates.uniqueId!.toLowerCase() && u.id !== userId
+        );
+        if (existingUser) {
+          throw new Error('User ID already exists');
+        }
+      }
     if (userIndex === -1) return null;
 
     this.users[userIndex] = { ...this.users[userIndex], ...updates };
@@ -375,22 +437,38 @@ class AuthServiceClass {
     this.notifyListeners('userUpdated', this.users[userIndex]);
     
     return this.users[userIndex];
+    } catch (error) {
+      console.error('Error updating user:', error);
+      throw error;
+    }
   }
 
   deleteUser(userId: string): boolean {
+    try {
     const userIndex = this.users.findIndex(u => u.id === userId);
     if (userIndex === -1) return false;
 
     const deletedUser = this.users[userIndex];
+      
+      // Don't allow deleting the current user
+      if (this.currentUser?.id === userId) {
+        throw new Error('Cannot delete the currently logged in user');
+      }
+      
     this.users.splice(userIndex, 1);
     
     // Notify listeners about the deleted user
     this.notifyListeners('userDeleted', deletedUser);
     
     return true;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      throw error;
+    }
   }
 
   updateUserLocation(userId: string, location: { latitude: number; longitude: number }): boolean {
+    try {
     const user = this.users.find(u => u.id === userId);
     if (!user) return false;
 
@@ -404,6 +482,10 @@ class AuthServiceClass {
     this.notifyListeners('userUpdated', user);
     
     return true;
+    } catch (error) {
+      console.error('Error updating user location:', error);
+      return false;
+    }
   }
 
   getActiveUsers(): User[] {

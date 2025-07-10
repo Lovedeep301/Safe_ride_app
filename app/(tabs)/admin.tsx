@@ -70,18 +70,33 @@ export default function AdminPanel() {
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
+    // Check authentication and admin role
+    if (!AuthService.isAuthenticated()) {
+      router.replace('/auth');
+      return;
+    }
+
+    // For non-admin users, only show profile
+    if (currentUser?.role !== 'admin') {
+      setCurrentScreen('profile');
+    }
+
     loadData();
-  }, []);
+  }, [currentUser]);
 
   const loadData = async () => {
-    const allUsers = AuthService.getAllUsers();
-    setUsers(allUsers);
-    
-    const allGroups = await GroupService.getAllGroups();
-    setGroups(allGroups);
-    
-    const alerts = await EmergencyService.getActiveAlerts();
-    setEmergencyAlerts(alerts);
+    try {
+      const allUsers = AuthService.getAllUsers();
+      setUsers(allUsers);
+      
+      const allGroups = await GroupService.getAllGroups();
+      setGroups(allGroups);
+      
+      const alerts = await EmergencyService.getActiveAlerts();
+      setEmergencyAlerts(alerts);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    }
   };
 
   const handleCreateUser = async () => {
@@ -91,6 +106,20 @@ export default function AdminPanel() {
           alert('Please fill in all required fields');
         } else {
           Alert.alert('Error', 'Please fill in all required fields');
+        }
+        return;
+      }
+
+      // Check if unique ID already exists
+      const existingUser = AuthService.getAllUsers().find(u => 
+        u.uniqueId.toLowerCase() === userFormData.uniqueId.toLowerCase()
+      );
+      
+      if (existingUser) {
+        if (Platform.OS === 'web') {
+          alert('User ID already exists. Please choose a different ID.');
+        } else {
+          Alert.alert('Error', 'User ID already exists. Please choose a different ID.');
         }
         return;
       }
@@ -137,6 +166,7 @@ export default function AdminPanel() {
         Alert.alert('Success', 'User created successfully!');
       }
     } catch (error) {
+      console.error('Error creating user:', error);
       if (Platform.OS === 'web') {
         alert('Failed to create user');
       } else {
@@ -152,6 +182,20 @@ export default function AdminPanel() {
           alert('Please fill in all required fields');
         } else {
           Alert.alert('Error', 'Please fill in all required fields');
+        }
+        return;
+      }
+
+      // Check if unique ID already exists (excluding current user)
+      const existingUser = AuthService.getAllUsers().find(u => 
+        u.uniqueId.toLowerCase() === userFormData.uniqueId.toLowerCase() && u.id !== editingUser.id
+      );
+      
+      if (existingUser) {
+        if (Platform.OS === 'web') {
+          alert('User ID already exists. Please choose a different ID.');
+        } else {
+          Alert.alert('Error', 'User ID already exists. Please choose a different ID.');
         }
         return;
       }
@@ -199,6 +243,7 @@ export default function AdminPanel() {
         Alert.alert('Success', 'User updated successfully!');
       }
     } catch (error) {
+      console.error('Error updating user:', error);
       if (Platform.OS === 'web') {
         alert('Failed to update user');
       } else {
@@ -225,15 +270,24 @@ export default function AdminPanel() {
   };
 
   const performDelete = (userId: string) => {
-    const success = AuthService.deleteUser(userId);
-    if (success) {
-      loadData();
-      if (Platform.OS === 'web') {
-        alert('User deleted successfully!');
+    try {
+      const success = AuthService.deleteUser(userId);
+      if (success) {
+        loadData();
+        if (Platform.OS === 'web') {
+          alert('User deleted successfully!');
+        } else {
+          Alert.alert('Success', 'User deleted successfully!');
+        }
       } else {
-        Alert.alert('Success', 'User deleted successfully!');
+        if (Platform.OS === 'web') {
+          alert('Failed to delete user');
+        } else {
+          Alert.alert('Error', 'Failed to delete user');
+        }
       }
-    } else {
+    } catch (error) {
+      console.error('Error deleting user:', error);
       if (Platform.OS === 'web') {
         alert('Failed to delete user');
       } else {
@@ -290,6 +344,7 @@ export default function AdminPanel() {
         Alert.alert('Success', 'Group created successfully!');
       }
     } catch (error) {
+      console.error('Error creating group:', error);
       if (Platform.OS === 'web') {
         alert('Failed to create group');
       } else {
@@ -387,19 +442,27 @@ export default function AdminPanel() {
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recent Emergency Alerts</Text>
-        {emergencyAlerts.slice(0, 3).map((alert) => (
-          <View key={alert.id} style={styles.alertCard}>
-            <View style={styles.alertHeader}>
-              <AlertTriangle size={20} color="#DC2626" />
-              <Text style={styles.alertTitle}>{alert.type} Alert</Text>
-              <Text style={styles.alertTime}>
-                {new Date(alert.timestamp).toLocaleTimeString()}
-              </Text>
-            </View>
-            <Text style={styles.alertUser}>{alert.userName}</Text>
-            <Text style={styles.alertMessage}>{alert.message}</Text>
+        {emergencyAlerts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <AlertTriangle size={48} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>No Active Alerts</Text>
+            <Text style={styles.emptyDescription}>All emergency alerts have been resolved</Text>
           </View>
-        ))}
+        ) : (
+          emergencyAlerts.slice(0, 3).map((alert) => (
+            <View key={alert.id} style={styles.alertCard}>
+              <View style={styles.alertHeader}>
+                <AlertTriangle size={20} color="#DC2626" />
+                <Text style={styles.alertTitle}>{alert.type} Alert</Text>
+                <Text style={styles.alertTime}>
+                  {new Date(alert.timestamp).toLocaleTimeString()}
+                </Text>
+              </View>
+              <Text style={styles.alertUser}>{alert.userName}</Text>
+              <Text style={styles.alertMessage}>{alert.message}</Text>
+            </View>
+          ))
+        )}
       </View>
     </ScrollView>
   );
@@ -481,6 +544,15 @@ export default function AdminPanel() {
           </View>
         )}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyState}>
+            <Users size={48} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>No Users Found</Text>
+            <Text style={styles.emptyDescription}>
+              {searchQuery ? 'No users match your search criteria' : 'Start by creating your first user'}
+            </Text>
+          </View>
+        )}
       />
     </View>
   );
@@ -520,6 +592,13 @@ export default function AdminPanel() {
           </View>
         )}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={() => (
+          <View style={styles.emptyState}>
+            <Users size={48} color="#9CA3AF" />
+            <Text style={styles.emptyTitle}>No Groups Created</Text>
+            <Text style={styles.emptyDescription}>Create your first cab group to get started</Text>
+          </View>
+        )}
       />
     </View>
   );
@@ -541,7 +620,9 @@ export default function AdminPanel() {
             <Text style={styles.profileName}>{currentUser?.name}</Text>
             <Text style={styles.profileId}>ID: {currentUser?.uniqueId}</Text>
             <View style={styles.roleBadge}>
-              <Text style={styles.roleText}>Administrator</Text>
+              <Text style={styles.roleText}>
+                {currentUser?.role === 'admin' ? 'Administrator' : 'User'}
+              </Text>
             </View>
           </View>
         </View>
@@ -831,7 +912,10 @@ export default function AdminPanel() {
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setShowCreateGroupModal(false)}>
+          <TouchableOpacity onPress={() => {
+            setShowCreateGroupModal(false);
+            resetGroupForm();
+          }}>
             <X size={24} color="#6B7280" />
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Create New Group</Text>
@@ -987,6 +1071,11 @@ export default function AdminPanel() {
     }
   };
 
+  // Don't render anything if not authenticated
+  if (!AuthService.isAuthenticated()) {
+    return null;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -1105,6 +1194,25 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     color: '#1F2937',
     marginBottom: 12,
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   alertCard: {
     backgroundColor: '#FFFFFF',
