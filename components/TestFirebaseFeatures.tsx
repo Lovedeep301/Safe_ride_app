@@ -14,7 +14,7 @@ import { MessageCircle, TriangleAlert as AlertTriangle, MapPin, Send, CircleChec
 import { FirebaseMessageService } from '@/services/FirebaseMessageService';
 import { FirebaseEmergencyService } from '@/services/FirebaseEmergencyService';
 import { FirebaseLocationService } from '@/services/FirebaseLocationService';
-import { AuthService } from '@/services/AuthService';
+import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 
 export default function TestFirebaseFeatures() {
   const [testResults, setTestResults] = useState<Record<string, 'pending' | 'success' | 'error'>>({});
@@ -22,7 +22,7 @@ export default function TestFirebaseFeatures() {
   const [messages, setMessages] = useState<any[]>([]);
   const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
   const [locationUpdates, setLocationUpdates] = useState<any[]>([]);
-  const user = AuthService.getCurrentUser();
+  const { user, loading } = useFirebaseAuth();
 
   const updateTestResult = (testName: string, result: 'success' | 'error') => {
     setTestResults(prev => ({ ...prev, [testName]: result }));
@@ -166,6 +166,19 @@ export default function TestFirebaseFeatures() {
       default: return '#F59E0B';
     }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorTitle}>Loading...</Text>
+          <Text style={styles.errorText}>
+            Checking authentication status
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (!user) {
     return (
