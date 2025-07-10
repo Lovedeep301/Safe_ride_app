@@ -253,8 +253,9 @@ class AuthServiceClass {
     
     try {
       // Try to restore user from storage
-      if (typeof window !== 'undefined' && window.localStorage) {
-        const stored = localStorage.getItem('currentUser');
+      const storage = this.getStorage();
+      if (storage) {
+        const stored = storage.getItem('currentUser');
         if (stored) {
           const userData = JSON.parse(stored);
           // Validate that the user still exists and is active
@@ -263,15 +264,16 @@ class AuthServiceClass {
             this.currentUser = user;
           } else {
             // Remove invalid stored user
-            localStorage.removeItem('currentUser');
+            storage.removeItem('currentUser');
           }
         }
       }
     } catch (error) {
       console.error('Error initializing auth service:', error);
       // Clear invalid storage
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem('currentUser');
+      const storage = this.getStorage();
+      if (storage) {
+        storage.removeItem('currentUser');
       }
     }
     
@@ -310,8 +312,9 @@ class AuthServiceClass {
       user.lastSeen = new Date();
       
       // In a real app, you would store this in secure storage
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem('currentUser', JSON.stringify(user));
+      const storage = this.getStorage();
+      if (storage) {
+        storage.setItem('currentUser', JSON.stringify(user));
       }
       return true;
     }
@@ -326,8 +329,9 @@ class AuthServiceClass {
   logout(): void {
     try {
     this.currentUser = null;
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.removeItem('currentUser');
+    const storage = this.getStorage();
+    if (storage) {
+      storage.removeItem('currentUser');
     }
     } catch (error) {
       console.error('Logout error:', error);
@@ -428,8 +432,9 @@ class AuthServiceClass {
     // Update current user if it's the same user
     if (this.currentUser?.id === userId) {
       this.currentUser = this.users[userIndex];
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+      const storage = this.getStorage();
+      if (storage) {
+        storage.setItem('currentUser', JSON.stringify(this.currentUser));
       }
     }
     
@@ -498,6 +503,47 @@ class AuthServiceClass {
 
   getUserById(userId: string): User | null {
     return this.users.find(user => user.id === userId) || null;
+  }
+
+  // Cross-platform storage helper
+  private getStorage(): Storage | null {
+    try {
+      // Web environment
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage;
+      }
+      
+      // React Native environment - use AsyncStorage equivalent
+      // For now, return null as we don't have AsyncStorage imported
+      // In a real app, you would import and use AsyncStorage here
+      return null;
+    } catch (error) {
+      console.error('Storage access error:', error);
+      return null;
+    }
+  }
+
+  // Sync user data across devices/sessions
+  async syncUserData(): Promise<void> {
+    try {
+      // In a real app, this would sync with a backend server
+      // For now, just refresh the current user data
+      if (this.currentUser) {
+        const updatedUser = this.users.find(u => u.id === this.currentUser!.id);
+        if (updatedUser && updatedUser.isActive) {
+          this.currentUser = updatedUser;
+          const storage = this.getStorage();
+          if (storage) {
+            storage.setItem('currentUser', JSON.stringify(this.currentUser));
+          }
+        } else {
+          // User no longer exists or is inactive
+          this.logout();
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing user data:', error);
+    }
   }
 }
 

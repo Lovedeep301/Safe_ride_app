@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts } from 'expo-font';
 import {
@@ -33,6 +34,26 @@ export default function RootLayout() {
   useEffect(() => {
     // Initialize auth service
     AuthService.initialize();
+    
+    // Enable rotation support
+    const enableRotation = async () => {
+      try {
+        await ScreenOrientation.unlockAsync();
+      } catch (error) {
+        console.log('Screen orientation not available on this platform');
+      }
+    };
+    
+    enableRotation();
+    
+    // Sync user data periodically
+    const syncInterval = setInterval(() => {
+      AuthService.syncUserData();
+    }, 30000); // Sync every 30 seconds
+    
+    return () => {
+      clearInterval(syncInterval);
+    };
   }, []);
   if (!fontsLoaded && !fontError) {
     return null;

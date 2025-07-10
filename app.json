@@ -8,13 +8,25 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "orientation": "default",
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAFC"
+    },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "orientation": "default"
+    },
+    "android": {
+      "orientation": "default",
+      "screenOrientation": "default"
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "orientation": "default"
     },
     "plugins": ["expo-router", "expo-font", "expo-web-browser"],
     "experiments": {

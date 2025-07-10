@@ -62,6 +62,9 @@ export default function AuthScreen() {
     setIsLoading(true);
     
     try {
+      // Sync user data before login attempt
+      await AuthService.syncUserData();
+      
       const success = await AuthService.login(uniqueId.trim(), password.trim());
       if (success) {
         const user = AuthService.getCurrentUser();
@@ -74,16 +77,16 @@ export default function AuthScreen() {
         }
       } else {
         if (Platform.OS === 'web') {
-          alert('Invalid credentials. Please check your ID and password.');
+          alert('Invalid credentials or account not found. Please check your ID and password, or contact your administrator if you believe this is an error.');
         } else {
-          Alert.alert('Error', 'Invalid credentials. Please check your ID and password.');
+          Alert.alert('Login Failed', 'Invalid credentials or account not found. Please check your ID and password, or contact your administrator if you believe this is an error.');
         }
       }
     } catch (error) {
       if (Platform.OS === 'web') {
-        alert('Login failed. Please try again.');
+        alert('Login failed. Please check your connection and try again.');
       } else {
-        Alert.alert('Error', 'Login failed. Please try again.');
+        Alert.alert('Connection Error', 'Login failed. Please check your connection and try again.');
       }
     } finally {
       setIsLoading(false);
