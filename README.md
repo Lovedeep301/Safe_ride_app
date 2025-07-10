@@ -124,11 +124,14 @@ services/
 - [x] System analytics and reporting
 
 ### Phase 6: Backend Integration 🔄 (In Progress)
-- [ ] Replace mock services with real backend APIs
-- [ ] Implement proper database schema
-- [ ] Set up real-time WebSocket connections
-- [ ] Add push notification system
-- [ ] Implement proper authentication with JWT
+- [x] Firebase Authentication integration
+- [x] Firestore real-time database
+- [x] Real-time messaging system
+- [x] Emergency alerts with Firebase
+- [x] Location tracking with Firebase
+- [ ] Push notifications with FCM
+- [ ] File upload with Firebase Storage
+- [ ] Offline data synchronization
 
 ### Phase 7: Advanced Features 📋 (Planned)
 - [ ] Advanced analytics and reporting
@@ -160,6 +163,7 @@ services/
 - Node.js 18+ 
 - Expo CLI
 - iOS Simulator or Android Emulator (for testing)
+- Firebase project (for production features)
 
 ### Installation
 ```bash
@@ -168,6 +172,12 @@ git clone <repository-url>
 
 # Install dependencies
 npm install
+
+# Configure Firebase (optional)
+# 1. Create a Firebase project
+# 2. Copy your config to firebase.config.ts
+# 3. Enable Authentication and Firestore
+# 4. Set up security rules
 
 # Start the development server
 npm run dev
@@ -192,15 +202,79 @@ The application includes demo accounts for testing:
 - ID: EMP004, Password: emp123
 - ID: EMP005, Password: emp123
 
+### Firebase Integration
+The app now includes Firebase services:
+- **Authentication**: Email/password with unique ID lookup
+- **Real-time Database**: Firestore for all app data
+- **Messaging**: Real-time chat with Firebase
+- **Emergency Alerts**: Live emergency notification system
+- **Location Tracking**: Real-time location updates
+- **User Management**: Complete user lifecycle management
+
 ## 🔧 Configuration
 
 ### Environment Setup
-The application currently uses mock data services. For production deployment, configure:
-- Backend API endpoints
-- Database connections
-- Push notification services
-- Map service API keys
-- Authentication providers
+The application now supports Firebase integration. To configure:
+
+1. **Firebase Setup**:
+   - Create a Firebase project at https://console.firebase.google.com
+   - Enable Authentication, Firestore, and Storage
+   - Copy your Firebase configuration to `firebase.config.ts`
+
+2. **Firestore Security Rules**:
+   ```javascript
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       // Users can read/write their own data
+       match /users/{userId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+         allow read: if request.auth != null && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+       }
+       
+       // Messages - participants can read/write
+       match /messages/{messageId} {
+         allow read, write: if request.auth != null;
+       }
+       
+       // Conversations - participants can read/write
+       match /conversations/{conversationId} {
+         allow read, write: if request.auth != null;
+       }
+       
+       // Emergency alerts - authenticated users can create, admins can manage
+       match /emergencyAlerts/{alertId} {
+         allow create: if request.auth != null;
+         allow read, update: if request.auth != null && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+       }
+       
+       // Location updates - users can create their own, admins can read all
+       match /locationUpdates/{updateId} {
+         allow create: if request.auth != null && 
+           request.auth.uid == resource.data.userId;
+         allow read: if request.auth != null && 
+           (request.auth.uid == resource.data.userId || 
+            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+       }
+     }
+   }
+   ```
+
+3. **Authentication Setup**:
+   - Enable Email/Password authentication in Firebase Console
+   - Configure authorized domains for web deployment
+
+4. **Push Notifications** (Optional):
+   - Enable Firebase Cloud Messaging
+   - Configure service worker for web notifications
+
+### Firebase vs Mock Data
+The application supports both Firebase and mock data modes:
+- Use `FirebaseAuthService` for production with real Firebase backend
+- Use `AuthService` for development with mock data
+- Switch between services in your components as needed
 
 ### Customization
 - Update branding in `app.json`
