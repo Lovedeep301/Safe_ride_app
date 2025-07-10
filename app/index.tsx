@@ -6,75 +6,42 @@ import {
   SafeAreaView,
   ActivityIndicator
 } from 'react-native';
-import { router, useRootNavigationState, useRouter } from 'expo-router';
 import { Shield } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
+import { useRouter } from 'expo-router';
 
 export default function IndexScreen() {
   const [isLoading, setIsLoading] = useState(true);
-  const rootNavigationState = useRootNavigationState();
-  const routerInstance = useRouter();
-
-  // Wait for navigation state to be fully initialized
-  if (!rootNavigationState?.key) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.content}>
-          <View style={styles.logoContainer}>
-            <View style={styles.iconContainer}>
-              <Shield size={60} color="#2563EB" />
-            </View>
-            <Text style={styles.title}>Employee Safety Hub</Text>
-            <Text style={styles.subtitle}>
-              Secure communication and safety confirmation
-            </Text>
-          </View>
-
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#2563EB" />
-            <Text style={styles.loadingText}>Initializing...</Text>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const router = useRouter();
 
   useEffect(() => {
-    // Only proceed when router is ready
-    if (router.isReady) {
-      checkAuthStatus();
-    }
-  }, [rootNavigationState?.key, router.isReady]);
-
-  const checkAuthStatus = async () => {
-    try {
-      // Small delay to show the splash screen
+    // Delay to ensure navigation is ready and splash is visible
+    const initialize = async () => {
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const isAuthenticated = AuthService.isAuthenticated();
-      const user = AuthService.getCurrentUser();
-      
-      if (isAuthenticated) {
-        // Route based on user role
-        if (user?.role === 'driver') {
-          setTimeout(() => router.replace('/(driver-tabs)'), 0);
-        } else {
-          setTimeout(() => router.replace('/(tabs)'), 0);
-        }
-      } else {
-        setTimeout(() => router.replace('/auth'), 0);
-      }
-    } catch (error) {
-      console.error('Error checking auth status:', error);
-      setTimeout(() => router.replace('/auth'), 0);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  if (!isLoading) {
-    return null;
-  }
+      try {
+        const isAuthenticated = AuthService.isAuthenticated();
+        const user = AuthService.getCurrentUser();
+
+        if (isAuthenticated && user?.role) {
+          if (user.role === 'driver') {
+            router.replace('/(driver-tabs)');
+          } else {
+            router.replace('/(tabs)');
+          }
+        } else {
+          router.replace('/auth');
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        router.replace('/auth');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initialize();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
