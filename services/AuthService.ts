@@ -39,12 +39,51 @@ class AuthServiceClass {
   private currentUser: User | null = null;
   private listeners: AuthEventListener[] = [];
   private isInitialized = false;
+  private authUnsubscribe: (() => void) | null = null;
 
   // Initialize the service
-  initialize(): void {
+  async initialize(): Promise<void> {
     if (this.isInitialized) return;
     
     try {
+      // Initialize Firebase auth state listener first
+      const { FirebaseAuthService } = await import('./FirebaseAuthService');
+      
+      // Subscribe to Firebase auth state changes
+      this.authUnsubscribe = FirebaseAuthService.onAuthStateChanged((firebaseUser) => {
+        if (firebaseUser) {
+          // Convert Firebase user to local user format
+          this.currentUser = {
+            id: firebaseUser.id,
+            name: firebaseUser.name,
+            uniqueId: firebaseUser.uniqueId,
+            role: firebaseUser.role,
+            email: firebaseUser.email,
+            phone: firebaseUser.phone,
+            licenseNumber: firebaseUser.licenseNumber,
+            homeLocation: firebaseUser.homeLocation,
+            vehicleInfo: firebaseUser.vehicleInfo,
+            emergencyContact: firebaseUser.emergencyContact,
+            isActive: firebaseUser.isActive,
+            lastSeen: firebaseUser.lastSeen,
+            currentLocation: firebaseUser.currentLocation
+          };
+          
+          // Store in local storage
+          const storage = this.getStorage();
+          if (storage) {
+            storage.setItem('currentUser', JSON.stringify(this.currentUser));
+          }
+        } else {
+          // User signed out
+          this.currentUser = null;
+          const storage = this.getStorage();
+          if (storage) {
+            storage.removeItem('currentUser');
+          }
+        }
+      });
+      
       // Try to restore user from storage
       const storage = this.getStorage();
       if (storage) {
@@ -66,6 +105,14 @@ class AuthServiceClass {
     this.isInitialized = true;
   }
 
+  // Clean up auth listener
+  destroy(): void {
+    if (this.authUnsubscribe) {
+      this.authUnsubscribe();
+      this.authUnsubscribe = null;
+    }
+    this.isInitialized = false;
+  }
   // Event system methods
   addEventListener(listener: AuthEventListener): void {
     this.listeners.push(listener);
@@ -145,14 +192,16 @@ class AuthServiceClass {
 
   getCurrentUser(): User | null {
     if (!this.isInitialized) {
-      this.initialize();
+      // Initialize asynchronously but return current state
+      this.initialize().catch(console.error);
     }
     return this.currentUser;
   }
 
   isAuthenticated(): boolean {
     if (!this.isInitialized) {
-      this.initialize();
+      // Initialize asynchronously but return current state
+      this.initialize().catch(console.error);
     }
     return this.getCurrentUser() !== null;
   }
@@ -361,21 +410,6 @@ class AuthServiceClass {
     }
   }
 
-  // Sync user data across devices/sessions
-  async syncUserData(): Promise<void> {
-    try {
-      // In Firebase mode, the auth state is managed by Firebase
-      // Just refresh the current user data if needed
-      if (this.currentUser) {
-        const storage = this.getStorage();
-        if (storage) {
-          storage.setItem('currentUser', JSON.stringify(this.currentUser));
-        }
-      }
-    } catch (error) {
-      console.error('Error syncing user data:', error);
-    }
-  }
 }
 
 export const AuthService = new AuthServiceClass();
