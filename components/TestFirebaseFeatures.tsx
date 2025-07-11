@@ -24,7 +24,10 @@ export default function TestFirebaseFeatures() {
   const [messages, setMessages] = useState<any[]>([]);
   const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
   const [locationUpdates, setLocationUpdates] = useState<any[]>([]);
-  const { user, loading, error } = useFirebaseAuth();
+  const { user: firebaseUser, loading, error } = useFirebaseAuth();
+  
+  // Use AuthService user if Firebase user is not available
+  const user = firebaseUser || AuthService.getCurrentUser();
 
   useEffect(() => {
     // Debug authentication status
@@ -35,16 +38,17 @@ export default function TestFirebaseFeatures() {
       setDebugInfo(`
         Loading: ${loading}
         Error: ${error || 'none'}
-        Firebase User: ${user ? `${user.name} (${user.uniqueId})` : 'null'}
+        Firebase User: ${firebaseUser ? `${firebaseUser.name} (${firebaseUser.uniqueId})` : 'null'}
         Auth Service User: ${authUser ? `${authUser.name} (${authUser.uniqueId})` : 'null'}
         Is Authenticated: ${isAuth}
+        Using User: ${user ? `${user.name} (${user.uniqueId})` : 'null'}
       `);
     };
     
     debugAuth();
     const interval = setInterval(debugAuth, 1000);
     return () => clearInterval(interval);
-  }, [user, loading, error]);
+  }, [firebaseUser, loading, error]);
 
   const updateTestResult = (testName: string, result: 'success' | 'error') => {
     setTestResults(prev => ({ ...prev, [testName]: result }));
@@ -189,7 +193,7 @@ export default function TestFirebaseFeatures() {
     }
   };
 
-  if (loading) {
+  if (loading && !AuthService.getCurrentUser()) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
@@ -216,7 +220,7 @@ export default function TestFirebaseFeatures() {
           <Text style={styles.errorTitle}>Authentication Required</Text>
           <Text style={styles.errorText}>
             {authUser 
-              ? `Logged in as ${authUser.name} but Firebase user not found. Try logging out and back in.`
+              ? `Logged in as ${authUser.name}. Firebase sync in progress...`
               : 'Please log in to test Firebase features'
             }
           </Text>
