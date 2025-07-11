@@ -1,7 +1,7 @@
 // Updated Firebase User Setup Script with better compatibility
 const { initializeApp } = require('firebase/app');
-const { getAuth, createUserWithEmailAndPassword, connectAuthEmulator } = require('firebase/auth');
-const { getFirestore, doc, setDoc, connectFirestoreEmulator } = require('firebase/firestore');
+const { getAuth, createUserWithEmailAndPassword } = require('firebase/auth');
+const { getFirestore, doc, setDoc, collection, query, where, getDocs } = require('firebase/firestore');
 
 // Your Firebase configuration
 const firebaseConfig = {

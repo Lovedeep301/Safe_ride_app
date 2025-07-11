@@ -86,17 +86,18 @@ class FirebaseAuthServiceClass {
       console.log(`Found ${querySnapshot.size} users with uniqueId: ${uniqueId.toUpperCase()}`);
 
       if (querySnapshot.empty) {
-        console.error(`No user found with uniqueId: ${uniqueId.toUpperCase()}`);
-        console.log('Available users in database:');
-        
-        // Debug: List all users to help troubleshoot
+        // Check if we have any users at all
         const allUsersQuery = await getDocs(collection(db, 'users'));
-        allUsersQuery.forEach(doc => {
-          const userData = doc.data();
-          console.log(`- ${userData.uniqueId || 'NO_UNIQUE_ID'} (${userData.email || 'NO_EMAIL'})`);
-        });
-        
-        throw new Error(`User not found with ID: ${uniqueId.toUpperCase()}. Please check if the user exists in Firestore or run the setup script to create demo users.`);
+        if (allUsersQuery.empty) {
+          throw new Error(`No users found in database. Please run 'npm run setup-firebase-users' to create demo users first.`);
+        } else {
+          console.log('Available users in database:');
+          allUsersQuery.forEach(doc => {
+            const userData = doc.data();
+            console.log(`- ${userData.uniqueId || 'NO_UNIQUE_ID'} (${userData.email || 'NO_EMAIL'})`);
+          });
+          throw new Error(`User not found with ID: ${uniqueId.toUpperCase()}. Available users are listed in console. Run 'npm run setup-firebase-users' if needed.`);
+        }
       }
 
       const userDoc = querySnapshot.docs[0];

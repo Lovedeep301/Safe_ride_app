@@ -39,7 +39,8 @@ class NotificationServiceClass {
         const registration = await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registered:', registration);
       } catch (error) {
-        console.error('Service Worker registration failed:', error);
+        // Silently handle Service Worker registration failure in unsupported environments
+        console.warn('Service Worker not available in this environment (expected in StackBlitz)');
       }
     }
   }
