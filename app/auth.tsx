@@ -30,6 +30,7 @@ export default function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
     if (!uniqueId.trim()) {
@@ -302,6 +303,22 @@ export default function AuthScreen() {
                 </View>
               </View>
 
+              {error && (
+                <Text style={styles.errorText}>{error}</Text>
+              )}
+        
+              {error && error.includes('npm run setup-firebase-users') && (
+                <View style={styles.setupHint}>
+                  <Text style={styles.setupHintText}>
+                    💡 Need demo users? Run this command in terminal:
+                  </Text>
+                  <Text style={styles.setupCommand}>npm run setup-firebase-users</Text>
+                  <Text style={styles.setupHintText}>
+                    Then try logging in with: ADMIN001 / admin123
+                  </Text>
+                </View>
+              )}
+
               {/* Action Button */}
               <TouchableOpacity
                 style={[styles.actionButton, isLoading && styles.actionButtonDisabled]}
@@ -511,6 +528,36 @@ const styles = StyleSheet.create({
   },
   roleChipTextSelected: {
     color: '#3B82F6',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  setupHint: {
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+  },
+  setupHintText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  setupCommand: {
+    color: '#1E40AF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    padding: 8,
+    borderRadius: 6,
+    marginBottom: 8,
   },
   actionButton: {
     borderRadius: 16,
