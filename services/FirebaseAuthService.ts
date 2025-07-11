@@ -76,28 +76,46 @@ class FirebaseAuthServiceClass {
 
   async signInWithUniqueId(uniqueId: string, password: string): Promise<boolean> {
     try {
+      console.log(`Attempting to sign in with uniqueId: ${uniqueId}`);
+      
       // First, find the user by uniqueId
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('uniqueId', '==', uniqueId.toUpperCase()));
       const querySnapshot = await getDocs(q);
 
+      console.log(`Found ${querySnapshot.size} users with uniqueId: ${uniqueId.toUpperCase()}`);
+
       if (querySnapshot.empty) {
-        throw new Error('User not found');
+        console.error(`No user found with uniqueId: ${uniqueId.toUpperCase()}`);
+        console.log('Available users in database:');
+        
+        // Debug: List all users to help troubleshoot
+        const allUsersQuery = await getDocs(collection(db, 'users'));
+        allUsersQuery.forEach(doc => {
+          const userData = doc.data();
+          console.log(`- ${userData.uniqueId || 'NO_UNIQUE_ID'} (${userData.email || 'NO_EMAIL'})`);
+        });
+        
+        throw new Error(`User not found with ID: ${uniqueId.toUpperCase()}. Please check if the user exists in Firestore or run the setup script to create demo users.`);
       }
 
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data() as FirebaseUserData;
+
+      console.log(`Found user: ${userData.name} (${userData.email})`);
 
       if (!userData.email) {
         throw new Error('User email not found');
       }
 
       // Sign in with email and password
+      console.log(`Attempting Firebase auth with email: ${userData.email}`);
       await signInWithEmailAndPassword(auth, userData.email, password);
       
       // Update last seen
       await this.updateUserLastSeen(userDoc.id);
       
+      console.log('Sign in successful');
       return true;
     } catch (error) {
       console.error('Sign in error:', error);

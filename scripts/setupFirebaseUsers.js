@@ -119,6 +119,8 @@ async function createFirebaseUser(userData) {
       userData.password
     );
 
+    console.log(`Created Firebase Auth user with UID: ${userCredential.user.uid}`);
+
     // Create user document in Firestore
     const { password, ...userDataWithoutPassword } = userData;
     const firestoreUserData = {
@@ -130,13 +132,32 @@ async function createFirebaseUser(userData) {
       lastSeen: new Date().toISOString()
     };
 
+    console.log(`Creating Firestore document for: ${userData.uniqueId}`);
     await setDoc(doc(db, 'users', userCredential.user.uid), firestoreUserData);
+    console.log(`Firestore document created successfully`);
 
     console.log(`✅ Successfully created: ${userData.name}`);
     return userCredential.user;
   } catch (error) {
     if (error.code === 'auth/email-already-in-use') {
       console.log(`⚠️  User already exists: ${userData.email}`);
+      
+      // Try to create/update the Firestore document even if auth user exists
+      try {
+        console.log(`Attempting to find existing user and update Firestore document...`);
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', userData.email));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+          console.log(`No Firestore document found for ${userData.email}, this might cause login issues.`);
+        } else {
+          console.log(`Firestore document exists for ${userData.email}`);
+        }
+      } catch (firestoreError) {
+        console.error(`Error checking Firestore document:`, firestoreError);
+      }
+      
       return null;
     } else {
       console.error(`❌ Error creating ${userData.name}:`, error.message);
