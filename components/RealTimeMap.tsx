@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
-import { MapPin, Users, Car, RefreshCw, Zap, Clock, Navigation } from 'lucide-react-native';
+import { MapPin, Users, Car, RefreshCw, Zap, Clock, Navigation, Crosshair } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { LocationService } from '@/services/LocationService';
+import { FirebaseLocationService } from '@/services/FirebaseLocationService';
 
 interface MapUser {
   id: string;
@@ -21,12 +23,14 @@ interface MapUser {
     longitude: number;
     address?: string;
     timestamp: Date;
+    accuracy?: number;
   };
   status: 'online' | 'offline' | 'emergency';
   vehicleInfo?: {
     plateNumber: string;
     model: string;
   };
+  batteryLevel?: number;
 }
 
 interface RealTimeMapProps {
@@ -46,118 +50,243 @@ export default function RealTimeMap({
   const [refreshing, setRefreshing] = useState(false);
   const [selectedUser, setSelectedUser] = useState<MapUser | null>(null);
   const [mapCenter, setMapCenter] = useState({ latitude: 40.7128, longitude: -74.0060 });
+  const [currentUserLocation, setCurrentUserLocation] = useState<any>(null);
+  const [isTrackingLocation, setIsTrackingLocation] = useState(false);
+  const [locationSubscription, setLocationSubscription] = useState<(() => void) | null>(null);
   const currentUser = AuthService.getCurrentUser();
 
-  // Mock Python map data - In production, this would come from your Python backend
-  const mockMapData: MapUser[] = [
-    {
-      id: 'emp001',
-      name: 'Alice Johnson',
-      role: 'employee',
-      location: {
-        latitude: 40.7614,
-        longitude: -73.9776,
-        address: '123 Main St, New York, NY',
-        timestamp: new Date()
-      },
-      status: 'online'
-    },
-    {
-      id: 'emp002',
-      name: 'Bob Smith',
-      role: 'employee',
-      location: {
-        latitude: 40.7505,
-        longitude: -73.9934,
-        address: '456 Oak Ave, New York, NY',
-        timestamp: new Date()
-      },
-      status: 'online'
-    },
-    {
-      id: 'driver001',
-      name: 'Michael Rodriguez',
-      role: 'driver',
-      location: {
-        latitude: 40.7589,
-        longitude: -73.9851,
-        address: 'Times Square, New York, NY',
-        timestamp: new Date()
-      },
-      status: 'online',
-      vehicleInfo: {
-        plateNumber: 'ABC-1234',
-        model: 'Toyota Hiace'
-      }
-    },
-    {
-      id: 'driver002',
-      name: 'Jennifer Chen',
-      role: 'driver',
-      location: {
-        latitude: 40.7282,
-        longitude: -74.0776,
-        address: 'Financial District, New York, NY',
-        timestamp: new Date()
-      },
-      status: 'online',
-      vehicleInfo: {
-        plateNumber: 'XYZ-5678',
-        model: 'Ford Transit'
-      }
-    }
-  ];
+  // Start real-time location tracking for current user
+  const startLocationTracking = useCallback(async () => {
+    if (!currentUser || isTrackingLocation) return;
 
-  const loadMapUsers = useCallback(async () => {
+    try {
+      setIsTrackingLocation(true);
+      
+      // Get initial location
+      const initialLocation = await LocationService.getCurrentLocation();
+      setCurrentUserLocation(initialLocation);
+      setMapCenter({
+        latitude: initialLocation.latitude,
+        longitude: initialLocation.longitude
+      });
+
+      // Update Firebase with current location
+      await FirebaseLocationService.updateUserLocation(
+        currentUser.id,
+        currentUser.name,
+        currentUser.role as 'employee' | 'driver' | 'admin',
+        initialLocation,
+        85 // Mock battery level
+      );
+
+      // Start continuous tracking
+      LocationService.startTracking(
+        async (location) => {
+          setCurrentUserLocation(location);
+          
+          // Update Firebase with new location
+          try {
+            await FirebaseLocationService.updateUserLocation(
+              currentUser.id,
+              currentUser.name,
+              currentUser.role as 'employee' | 'driver' | 'admin',
+              location,
+              85 // Mock battery level
+            );
+          } catch (error) {
+            console.error('Error updating location to Firebase:', error);
+          }
+        },
+        {
+          interval: 30000, // Update every 30 seconds
+          movementThreshold: 10, // Only update if moved 10+ meters
+          enableBatteryMonitoring: true
+        }
+      );
+
+    } catch (error) {
+      console.error('Error starting location tracking:', error);
+      setError('Failed to start location tracking');
+      setIsTrackingLocation(false);
+    }
+  }, [currentUser, isTrackingLocation]);
+
+  // Stop location tracking
+  const stopLocationTracking = useCallback(() => {
+    LocationService.stopTracking();
+    setIsTrackingLocation(false);
+  }, []);
+
+  // Load real-time location data from Firebase
+  const loadRealTimeUsers = useCallback(async () => {
     if (isLoading) return;
     
     try {
       setIsLoading(true);
       setError(null);
       
-      // Simulate API call to Python backend
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get recent location updates from Firebase
+      const locationUpdates = await FirebaseLocationService.getRecentLocations(
+        filterRole === 'all' ? undefined : filterRole
+      );
       
-      // Filter users based on role
-      let filteredUsers = mockMapData;
-      if (filterRole !== 'all') {
-        filteredUsers = mockMapData.filter(user => user.role === filterRole);
-      }
-      
-      // Add some randomization to simulate real-time updates
-      const updatedUsers = filteredUsers.map(user => ({
-        ...user,
+      // Convert Firebase location updates to MapUser format
+      const mapUsers: MapUser[] = locationUpdates.map(update => ({
+        id: update.userId,
+        name: update.userName,
+        role: update.userRole,
         location: {
-          ...user.location,
-          latitude: user.location.latitude + (Math.random() - 0.5) * 0.001,
-          longitude: user.location.longitude + (Math.random() - 0.5) * 0.001,
-          timestamp: new Date()
-        }
+          latitude: update.location.latitude,
+          longitude: update.location.longitude,
+          address: update.location.address,
+          timestamp: update.timestamp?.toDate ? update.timestamp.toDate() : new Date(),
+          accuracy: update.location.accuracy
+        },
+        status: update.isEmergency ? 'emergency' : 'online',
+        batteryLevel: update.batteryLevel,
+        // Add vehicle info for drivers (mock data)
+        ...(update.userRole === 'driver' && {
+          vehicleInfo: {
+            plateNumber: `${update.userId.slice(-3)}-${Math.floor(Math.random() * 1000)}`,
+            model: 'Toyota Hiace'
+          }
+        })
       }));
+
+      // Remove duplicates (keep most recent for each user)
+      const uniqueUsers = mapUsers.reduce((acc, user) => {
+        const existing = acc.find(u => u.id === user.id);
+        if (!existing || user.location.timestamp > existing.location.timestamp) {
+          return [...acc.filter(u => u.id !== user.id), user];
+        }
+        return acc;
+      }, [] as MapUser[]);
+
+      setUsers(uniqueUsers);
       
-      setUsers(updatedUsers);
     } catch (err) {
-      setError('Failed to load map data');
+      setError('Failed to load real-time location data');
       console.error('Failed to load users:', err);
     } finally {
       setIsLoading(false);
     }
   }, [isLoading, filterRole]);
 
+  // Set up real-time Firebase subscription
+  useEffect(() => {
+    if (locationSubscription) {
+      locationSubscription();
+    }
+
+    // Subscribe to real-time location updates
+    const unsubscribe = FirebaseLocationService.subscribeToLocationUpdates(
+      (locationUpdates) => {
+        // Convert to MapUser format
+        const mapUsers: MapUser[] = locationUpdates.map(update => ({
+          id: update.userId,
+          name: update.userName,
+          role: update.userRole,
+          location: {
+            latitude: update.location.latitude,
+            longitude: update.location.longitude,
+            address: update.location.address,
+            timestamp: update.timestamp?.toDate ? update.timestamp.toDate() : new Date(),
+            accuracy: update.location.accuracy
+          },
+          status: update.isEmergency ? 'emergency' : 'online',
+          batteryLevel: update.batteryLevel,
+          ...(update.userRole === 'driver' && {
+            vehicleInfo: {
+              plateNumber: `${update.userId.slice(-3)}-${Math.floor(Math.random() * 1000)}`,
+              model: 'Toyota Hiace'
+            }
+          })
+        }));
+
+        // Filter by role if specified
+        const filteredUsers = filterRole === 'all' 
+          ? mapUsers 
+          : mapUsers.filter(user => user.role === filterRole);
+
+        // Remove duplicates (keep most recent for each user)
+        const uniqueUsers = filteredUsers.reduce((acc, user) => {
+          const existing = acc.find(u => u.id === user.id);
+          if (!existing || user.location.timestamp > existing.location.timestamp) {
+            return [...acc.filter(u => u.id !== user.id), user];
+          }
+          return acc;
+        }, [] as MapUser[]);
+
+        setUsers(uniqueUsers);
+      },
+      filterRole === 'all' ? undefined : filterRole
+    );
+
+    setLocationSubscription(() => unsubscribe);
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [filterRole]);
+
+  // Start location tracking on mount
+  useEffect(() => {
+    if (currentUser) {
+      startLocationTracking();
+    }
+
+    return () => {
+      stopLocationTracking();
+      if (locationSubscription) {
+        locationSubscription();
+      }
+    };
+  }, [currentUser]);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await loadMapUsers();
+    await loadRealTimeUsers();
+    
+    // Also refresh current user location
+    if (currentUser) {
+      try {
+        const location = await LocationService.getCurrentLocation();
+        setCurrentUserLocation(location);
+        await FirebaseLocationService.updateUserLocation(
+          currentUser.id,
+          currentUser.name,
+          currentUser.role as 'employee' | 'driver' | 'admin',
+          location,
+          85
+        );
+      } catch (error) {
+        console.error('Error refreshing location:', error);
+      }
+    }
+    
     setRefreshing(false);
-  }, [loadMapUsers]);
+  }, [loadRealTimeUsers, currentUser]);
 
-  useEffect(() => {
-    loadMapUsers();
-    
-    // Set up real-time updates every 30 seconds
-    const interval = setInterval(loadMapUsers, 30000);
-    
-    return () => clearInterval(interval);
-  }, [loadMapUsers]);
+  const centerOnCurrentUser = useCallback(async () => {
+    if (!currentUser) return;
+
+    try {
+      const location = await LocationService.getCurrentLocation();
+      setMapCenter({
+        latitude: location.latitude,
+        longitude: location.longitude
+      });
+      setCurrentUserLocation(location);
+    } catch (error) {
+      if (Platform.OS === 'web') {
+        alert('Unable to get current location. Please enable location services.');
+      } else {
+        Alert.alert('Location Error', 'Unable to get current location. Please enable location services.');
+      }
+    }
+  }, [currentUser]);
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -197,40 +326,120 @@ export default function RealTimeMap({
     return timestamp.toLocaleDateString();
   };
 
-  const renderMapView = () => (
-    <View style={[styles.mapContainer, { height }]}>
-      <View style={styles.mapPlaceholder}>
-        <MapPin size={48} color="#9CA3AF" />
-        <Text style={styles.mapPlaceholderText}>
-          Real-time Map View
-        </Text>
-        <Text style={styles.mapPlaceholderSubtext}>
-          Python-powered location tracking
-        </Text>
-        
-        {/* Simulated map pins */}
-        <View style={styles.mapPins}>
-          {users.map((user, index) => {
-            const RoleIcon = getRoleIcon(user.role);
-            return (
-              <TouchableOpacity
-                key={user.id}
-                style={[
-                  styles.mapPin,
-                  {
-                    left: `${20 + (index * 15)}%`,
-                    top: `${30 + (index * 10)}%`,
-                    backgroundColor: getRoleColor(user.role)
-                  }
-                ]}
-                onPress={() => setSelectedUser(user)}
-              >
-                <RoleIcon size={16} color="#FFFFFF" />
-              </TouchableOpacity>
-            );
-          })}
+  const calculateMapBounds = () => {
+    if (users.length === 0 && !currentUserLocation) return null;
+
+    const allLocations = [
+      ...users.map(u => u.location),
+      ...(currentUserLocation ? [currentUserLocation] : [])
+    ];
+
+    const lats = allLocations.map(l => l.latitude);
+    const lngs = allLocations.map(l => l.longitude);
+
+    return {
+      minLat: Math.min(...lats),
+      maxLat: Math.max(...lats),
+      minLng: Math.min(...lngs),
+      maxLng: Math.max(...lngs),
+      centerLat: (Math.min(...lats) + Math.max(...lats)) / 2,
+      centerLng: (Math.min(...lngs) + Math.max(...lngs)) / 2
+    };
+  };
+
+  const renderInteractiveMap = () => {
+    const bounds = calculateMapBounds();
+    const mapWidth = 300;
+    const mapHeight = height - 40;
+
+    return (
+      <View style={[styles.interactiveMap, { height: mapHeight }]}>
+        {/* Map Background */}
+        <View style={styles.mapBackground}>
+          <Text style={styles.mapTitle}>Live GPS Tracking</Text>
+          <Text style={styles.mapSubtitle}>
+            {users.length} users • {isTrackingLocation ? 'GPS Active' : 'GPS Inactive'}
+          </Text>
+        </View>
+
+        {/* Current User Location */}
+        {currentUserLocation && (
+          <View style={[
+            styles.userPin,
+            {
+              left: mapWidth * 0.5 - 15,
+              top: mapHeight * 0.5 - 15,
+              backgroundColor: '#2563EB',
+              borderColor: '#FFFFFF',
+              borderWidth: 3
+            }
+          ]}>
+            <Users size={16} color="#FFFFFF" />
+          </View>
+        )}
+
+        {/* Other Users */}
+        {users.map((user, index) => {
+          if (user.id === currentUser?.id) return null;
+          
+          const RoleIcon = getRoleIcon(user.role);
+          // Position users in a circle around current user
+          const angle = (index * 2 * Math.PI) / Math.max(users.length - 1, 1);
+          const radius = 60;
+          const x = mapWidth * 0.5 + Math.cos(angle) * radius - 15;
+          const y = mapHeight * 0.5 + Math.sin(angle) * radius - 15;
+          
+          return (
+            <TouchableOpacity
+              key={user.id}
+              style={[
+                styles.userPin,
+                {
+                  left: Math.max(5, Math.min(x, mapWidth - 35)),
+                  top: Math.max(5, Math.min(y, mapHeight - 35)),
+                  backgroundColor: getRoleColor(user.role)
+                }
+              ]}
+              onPress={() => setSelectedUser(user)}
+            >
+              <RoleIcon size={16} color="#FFFFFF" />
+              {user.status === 'emergency' && (
+                <View style={styles.emergencyIndicator} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+
+        {/* Location Accuracy Circle for Current User */}
+        {currentUserLocation?.accuracy && (
+          <View style={[
+            styles.accuracyCircle,
+            {
+              left: mapWidth * 0.5 - 30,
+              top: mapHeight * 0.5 - 30,
+              width: Math.min(60, currentUserLocation.accuracy / 2),
+              height: Math.min(60, currentUserLocation.accuracy / 2)
+            }
+          ]} />
+        )}
+
+        {/* GPS Status Indicator */}
+        <View style={styles.gpsStatus}>
+          <View style={[
+            styles.gpsIndicator,
+            { backgroundColor: isTrackingLocation ? '#10B981' : '#6B7280' }
+          ]} />
+          <Text style={styles.gpsStatusText}>
+            {isTrackingLocation ? 'GPS Active' : 'GPS Inactive'}
+          </Text>
         </View>
       </View>
+    );
+  };
+
+  const renderMapView = () => (
+    <View style={[styles.mapContainer, { height }]}>
+      {renderInteractiveMap()}
       
       {/* Map Controls */}
       {showControls && (
@@ -238,8 +447,14 @@ export default function RealTimeMap({
           <TouchableOpacity style={styles.controlButton} onPress={handleRefresh}>
             <RefreshCw size={20} color="#2563EB" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.controlButton}>
-            <Navigation size={20} color="#2563EB" />
+          <TouchableOpacity style={styles.controlButton} onPress={centerOnCurrentUser}>
+            <Crosshair size={20} color="#2563EB" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.controlButton, { backgroundColor: isTrackingLocation ? '#10B981' : '#6B7280' }]}
+            onPress={isTrackingLocation ? stopLocationTracking : startLocationTracking}
+          >
+            <Navigation size={20} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       )}
@@ -253,7 +468,33 @@ export default function RealTimeMap({
         <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
       }
     >
-      {users.map((user) => {
+      {/* Current User Card */}
+      {currentUserLocation && (
+        <View style={[styles.userCard, styles.currentUserCard]}>
+          <View style={styles.userCardLeft}>
+            <View style={[styles.userIcon, { backgroundColor: '#2563EB15' }]}>
+              <Users size={20} color="#2563EB" />
+            </View>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{currentUser?.name} (You)</Text>
+              <Text style={styles.userRole}>{currentUser?.role}</Text>
+              <Text style={styles.location}>
+                Accuracy: ±{currentUserLocation.accuracy?.toFixed(0) || 'Unknown'}m
+              </Text>
+            </View>
+          </View>
+          
+          <View style={styles.userCardRight}>
+            <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+            <Text style={styles.lastSeen}>Live</Text>
+            <Text style={styles.location} numberOfLines={1}>
+              {currentUserLocation.address || 'Current location'}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {users.filter(u => u.id !== currentUser?.id).map((user) => {
         const RoleIcon = getRoleIcon(user.role);
         return (
           <TouchableOpacity
@@ -273,6 +514,11 @@ export default function RealTimeMap({
                     {user.vehicleInfo.model} • {user.vehicleInfo.plateNumber}
                   </Text>
                 )}
+                {user.location.accuracy && (
+                  <Text style={styles.accuracyText}>
+                    ±{user.location.accuracy.toFixed(0)}m accuracy
+                  </Text>
+                )}
               </View>
             </View>
             
@@ -284,6 +530,11 @@ export default function RealTimeMap({
               <Text style={styles.location} numberOfLines={1}>
                 {user.location.address || 'Unknown location'}
               </Text>
+              {user.batteryLevel && (
+                <Text style={styles.batteryLevel}>
+                  🔋 {user.batteryLevel}%
+                </Text>
+              )}
             </View>
           </TouchableOpacity>
         );
@@ -328,6 +579,15 @@ export default function RealTimeMap({
             </Text>
           </View>
           
+          {selectedUser.location.accuracy && (
+            <View style={styles.detailRow}>
+              <Crosshair size={16} color="#6B7280" />
+              <Text style={styles.detailText}>
+                Accuracy: ±{selectedUser.location.accuracy.toFixed(0)} meters
+              </Text>
+            </View>
+          )}
+          
           {selectedUser.vehicleInfo && (
             <View style={styles.detailRow}>
               <Car size={16} color="#6B7280" />
@@ -343,6 +603,15 @@ export default function RealTimeMap({
               Status: {selectedUser.status}
             </Text>
           </View>
+
+          {selectedUser.batteryLevel && (
+            <View style={styles.detailRow}>
+              <Text style={styles.detailText}>🔋</Text>
+              <Text style={styles.detailText}>
+                Battery: {selectedUser.batteryLevel}%
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     );
@@ -352,9 +621,9 @@ export default function RealTimeMap({
     return (
       <View style={styles.errorContainer}>
         <Zap size={48} color="#EF4444" />
-        <Text style={styles.errorTitle}>Map Error</Text>
+        <Text style={styles.errorTitle}>GPS Error</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadMapUsers}>
+        <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
           <RefreshCw size={20} color="#FFFFFF" />
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
@@ -387,6 +656,12 @@ export default function RealTimeMap({
             {users.filter(u => u.status === 'online').length} Online
           </Text>
         </View>
+        <View style={styles.statItem}>
+          <Navigation size={16} color={isTrackingLocation ? '#10B981' : '#6B7280'} />
+          <Text style={styles.statText}>
+            GPS {isTrackingLocation ? 'On' : 'Off'}
+          </Text>
+        </View>
       </View>
       
       {renderUserList()}
@@ -410,44 +685,84 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  mapPlaceholder: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F4F6',
+  interactiveMap: {
     position: 'relative',
+    backgroundColor: '#F0F9FF',
+    borderRadius: 12,
   },
-  mapPlaceholderText: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-    marginTop: 12,
-  },
-  mapPlaceholderSubtext: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  mapPins: {
+  mapBackground: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%)',
   },
-  mapPin: {
+  mapTitle: {
+    fontSize: 18,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1F2937',
+    marginBottom: 4,
+  },
+  mapSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+  },
+  userPin: {
     position: 'absolute',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 4,
+    elevation: 5,
+  },
+  emergencyIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  accuracyCircle: {
+    position: 'absolute',
+    borderRadius: 50,
+    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(37, 99, 235, 0.3)',
+  },
+  gpsStatus: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  gpsIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  gpsStatusText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Medium',
+    color: '#374151',
   },
   mapControls: {
     position: 'absolute',
@@ -487,6 +802,11 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  currentUserCard: {
+    borderWidth: 2,
+    borderColor: '#2563EB',
+    backgroundColor: '#F8FAFC',
+  },
   userCardLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -521,6 +841,12 @@ const styles = StyleSheet.create({
     color: '#059669',
     marginTop: 2,
   },
+  accuracyText: {
+    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
   userCardRight: {
     alignItems: 'flex-end',
     minWidth: 100,
@@ -542,6 +868,12 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     maxWidth: 100,
+  },
+  batteryLevel: {
+    fontSize: 10,
+    fontFamily: 'Inter-Regular',
+    color: '#059669',
+    marginTop: 2,
   },
   userDetails: {
     backgroundColor: '#FFFFFF',
