@@ -13,24 +13,7 @@ import {
   Platform
 } from 'react-native';
 import { router } from 'expo-router';
-import { 
-  Users, 
-  UserPlus, 
-  Settings, 
-  LogOut, 
-  Search, 
-  TriangleAlert as AlertTriangle, 
-  MapPin, 
-  Shield,
-  Car,
-  X,
-  CircleCheck as CheckCircle,
-  Clock,
-  User,
-  Bell,
-  Lock,
-  HelpCircle
-} from 'lucide-react-native';
+import { Users, UserPlus, Settings, LogOut, Search, TriangleAlert as AlertTriangle, MapPin, Shield, Car, X, CircleCheck as CheckCircle, Clock, User, Bell, Lock, CircleHelp as HelpCircle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { EmergencyService } from '@/services/EmergencyService';
 import RealTimeMap from '@/components/RealTimeMap';
