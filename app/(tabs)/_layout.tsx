@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { router } from 'expo-router';
-import { Chrome as Home, Users, MessageCircle, Settings, Database, TestTube } from 'lucide-react-native';
+import { Chrome as Home, Users, MessageCircle, Settings, Database, TestTube, Bell } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 
 export default function TabLayout() {
@@ -69,6 +69,15 @@ export default function TabLayout() {
           title: 'Messages',
           tabBarIcon: ({ size, color }) => (
             <MessageCircle size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: 'Alerts',
+          tabBarIcon: ({ size, color }) => (
+            <Bell size={size} color={color} />
           ),
         }}
       />
