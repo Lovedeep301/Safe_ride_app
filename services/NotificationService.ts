@@ -34,13 +34,13 @@ class NotificationServiceClass {
 
   async initialize(): Promise<void> {
     // Initialize push notification service
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
       try {
         const registration = await navigator.serviceWorker.register('/sw.js');
         console.log('Service Worker registered:', registration);
       } catch (error) {
         // Silently handle Service Worker registration failure in unsupported environments
-        console.warn('Service Worker not available in this environment (expected in StackBlitz)');
+        console.warn('Service Worker not available in this environment');
       }
     }
   }

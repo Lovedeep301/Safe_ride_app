@@ -37,7 +37,7 @@ export default function SmartNotificationPanel() {
       loadRouteAlerts();
       
       // Initialize notification service
-      NotificationService.initialize();
+      NotificationService.initialize().catch(console.warn);
       
       // Request notification permission
       requestNotificationPermission();

@@ -49,43 +49,52 @@ class AuthServiceClass {
     if (this.isInitialized) return;
     
     try {
-      // Initialize Firebase auth state listener first
-      const { FirebaseAuthService } = await import('./FirebaseAuthService');
-      
-      // Subscribe to Firebase auth state changes
-      this.authUnsubscribe = FirebaseAuthService.onAuthStateChanged((firebaseUser) => {
-        if (firebaseUser) {
-          // Convert Firebase user to local user format
-          this.currentUser = {
-            id: firebaseUser.id,
-            name: firebaseUser.name,
-            uniqueId: firebaseUser.uniqueId,
-            role: firebaseUser.role,
-            email: firebaseUser.email,
-            phone: firebaseUser.phone,
-            licenseNumber: firebaseUser.licenseNumber,
-            homeLocation: firebaseUser.homeLocation,
-            vehicleInfo: firebaseUser.vehicleInfo,
-            emergencyContact: firebaseUser.emergencyContact,
-            isActive: firebaseUser.isActive,
-            lastSeen: firebaseUser.lastSeen,
-            currentLocation: firebaseUser.currentLocation
-          };
-          
-          // Store in local storage
-          this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
-        } else {
-          // User signed out
-          this.currentUser = null;
-          this.removeStorageItem('currentUser');
-        }
-      });
+      try {
+        // Initialize Firebase auth state listener first
+        const { FirebaseAuthService } = await import('./FirebaseAuthService');
+        
+        // Subscribe to Firebase auth state changes
+        this.authUnsubscribe = FirebaseAuthService.onAuthStateChanged((firebaseUser) => {
+          if (firebaseUser) {
+            // Convert Firebase user to local user format
+            this.currentUser = {
+              id: firebaseUser.id,
+              name: firebaseUser.name,
+              uniqueId: firebaseUser.uniqueId,
+              role: firebaseUser.role,
+              email: firebaseUser.email,
+              phone: firebaseUser.phone,
+              licenseNumber: firebaseUser.licenseNumber,
+              homeLocation: firebaseUser.homeLocation,
+              vehicleInfo: firebaseUser.vehicleInfo,
+              emergencyContact: firebaseUser.emergencyContact,
+              isActive: firebaseUser.isActive,
+              lastSeen: firebaseUser.lastSeen,
+              currentLocation: firebaseUser.currentLocation
+            };
+            
+            // Store in local storage
+            this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
+          } else {
+            // User signed out
+            this.currentUser = null;
+            this.removeStorageItem('currentUser');
+          }
+        });
+      } catch (firebaseError) {
+        console.warn('Firebase auth not available, using local storage only');
+      }
       
       // Try to restore user from storage
       const stored = await this.getStorageItem('currentUser');
       if (stored) {
-        const userData = JSON.parse(stored);
-        this.currentUser = userData;
+        try {
+          const userData = JSON.parse(stored);
+          this.currentUser = userData;
+        } catch (parseError) {
+          console.error('Error parsing stored user data:', parseError);
+          this.removeStorageItem('currentUser');
+        }
       }
     } catch (error) {
       console.error('Error initializing auth service:', error);

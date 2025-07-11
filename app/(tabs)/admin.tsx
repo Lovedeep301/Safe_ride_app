@@ -25,7 +25,11 @@ import {
   Car,
   X,
   CircleCheck as CheckCircle,
-  Clock
+  Clock,
+  User,
+  Bell,
+  Lock,
+  HelpCircle
 } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { EmergencyService } from '@/services/EmergencyService';
@@ -53,13 +57,15 @@ export default function AdminPanel() {
   });
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser) {
       router.replace('/auth');
       return;
     }
     
-    loadUsers();
-    loadEmergencyAlerts();
+    if (currentUser.role === 'admin') {
+      loadUsers();
+      loadEmergencyAlerts();
+    }
   }, [currentUser]);
 
   const loadUsers = async () => {
@@ -182,6 +188,83 @@ export default function AdminPanel() {
       router.replace('/auth');
     }
   };
+
+  // Render settings screen for non-admin users
+  const renderSettingsScreen = () => (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerSubtitle}>Manage your account and preferences</Text>
+        </View>
+      </View>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Profile Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Profile</Text>
+          <View style={styles.settingsCard}>
+            <View style={styles.profileSection}>
+              <View style={styles.profileIcon}>
+                <User size={32} color="#2563EB" />
+              </View>
+              <View style={styles.profileInfo}>
+                <Text style={styles.profileName}>{currentUser?.name}</Text>
+                <Text style={styles.profileRole}>{currentUser?.role}</Text>
+                <Text style={styles.profileId}>ID: {currentUser?.uniqueId}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Settings Options */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
+          <View style={styles.settingsCard}>
+            <TouchableOpacity style={styles.settingItem}>
+              <Bell size={20} color="#6B7280" />
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>Notifications</Text>
+                <Text style={styles.settingDescription}>Manage alert preferences</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.settingItem}>
+              <Lock size={20} color="#6B7280" />
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>Privacy & Security</Text>
+                <Text style={styles.settingDescription}>Location and data settings</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.settingItem}>
+              <HelpCircle size={20} color="#6B7280" />
+              <View style={styles.settingContent}>
+                <Text style={styles.settingLabel}>Help & Support</Text>
+                <Text style={styles.settingDescription}>Get help and contact support</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Sign Out Button */}
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={styles.signOutButton}
+            onPress={handleLogout}
+          >
+            <LogOut size={20} color="#FFFFFF" />
+            <Text style={styles.signOutButtonText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+
+  // Show settings screen for non-admin users
+  if (currentUser?.role !== 'admin') {
+    return renderSettingsScreen();
+  }
 
   const filteredUsers = Array.isArray(users) ? users.filter(user => {
     const matchesSearch = user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -632,6 +715,89 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginLeft: 8,
     flex: 1,
+  },
+  // Settings screen styles
+  settingsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profileIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EBF4FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 20,
+    fontFamily: 'Inter-Bold',
+    color: '#1F2937',
+  },
+  profileRole: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+    textTransform: 'capitalize',
+    marginTop: 4,
+  },
+  profileId: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  settingContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  settingLabel: {
+    fontSize: 16,
+    fontFamily: 'Inter-Medium',
+    color: '#1F2937',
+  },
+  settingDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  signOutButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 24,
+  },
+  signOutButtonText: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
   },
   addButton: {
     flexDirection: 'row',
