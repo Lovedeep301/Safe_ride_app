@@ -17,12 +17,33 @@ import { FirebaseLocationService } from '@/services/FirebaseLocationService';
 import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 
 export default function TestFirebaseFeatures() {
+  const [debugInfo, setDebugInfo] = useState('');
   const [testResults, setTestResults] = useState<Record<string, 'pending' | 'success' | 'error'>>({});
   const [testMessage, setTestMessage] = useState('Hello from Firebase!');
   const [messages, setMessages] = useState<any[]>([]);
   const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
   const [locationUpdates, setLocationUpdates] = useState<any[]>([]);
   const { user, loading } = useFirebaseAuth();
+
+  useEffect(() => {
+    // Debug authentication status
+    const debugAuth = () => {
+      const authUser = AuthService.getCurrentUser();
+      const isAuth = AuthService.isAuthenticated();
+      
+      setDebugInfo(`
+        Loading: ${loading}
+        Error: ${error || 'none'}
+        Firebase User: ${user ? `${user.name} (${user.uniqueId})` : 'null'}
+        Auth Service User: ${authUser ? `${authUser.name} (${authUser.uniqueId})` : 'null'}
+        Is Authenticated: ${isAuth}
+      `);
+    };
+    
+    debugAuth();
+    const interval = setInterval(debugAuth, 1000);
+    return () => clearInterval(interval);
+  }, [user, loading, error]);
 
   const updateTestResult = (testName: string, result: 'success' | 'error') => {
     setTestResults(prev => ({ ...prev, [testName]: result }));
@@ -175,20 +196,33 @@ export default function TestFirebaseFeatures() {
           <Text style={styles.errorText}>
             Checking authentication status
           </Text>
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>Debug Info:</Text>
+            <Text style={styles.debugText}>{debugInfo}</Text>
+          </View>
         </View>
       </SafeAreaView>
     );
   }
 
   if (!user) {
+    const authUser = AuthService.getCurrentUser();
+    
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <AlertTriangle size={48} color="#EF4444" />
           <Text style={styles.errorTitle}>Authentication Required</Text>
           <Text style={styles.errorText}>
-            Please log in to test Firebase features
+            {authUser 
+              ? `Logged in as ${authUser.name} but Firebase user not found. Try logging out and back in.`
+              : 'Please log in to test Firebase features'
+            }
           </Text>
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>Debug Info:</Text>
+            <Text style={styles.debugText}>{debugInfo}</Text>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -476,5 +510,24 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6B7280',
     textAlign: 'center',
+  },
+  debugContainer: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 16,
+    maxWidth: '100%',
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    lineHeight: 16,
   },
 });
