@@ -14,6 +14,7 @@ import { MessageCircle, TriangleAlert as AlertTriangle, MapPin, Send, CircleChec
 import { FirebaseMessageService } from '@/services/FirebaseMessageService';
 import { FirebaseEmergencyService } from '@/services/FirebaseEmergencyService';
 import { FirebaseLocationService } from '@/services/FirebaseLocationService';
+import { AuthService } from '@/services/AuthService';
 import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 
 export default function TestFirebaseFeatures() {
