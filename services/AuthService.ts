@@ -392,6 +392,17 @@ class AuthServiceClass {
     return users.find(user => user.id === userId) || null;
   }
 
+  async syncUserData(): Promise<void> {
+    if (this.currentUser) {
+      try {
+        const { FirebaseAuthService } = await import('./FirebaseAuthService');
+        await FirebaseAuthService.updateUserLastSeen(this.currentUser.id);
+      } catch (error) {
+        console.error('Error syncing user data:', error);
+      }
+    }
+  }
+
   // Cross-platform storage helper
   private getStorage(): Storage | null {
     try {
