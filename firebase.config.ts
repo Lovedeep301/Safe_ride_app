@@ -55,13 +55,14 @@ if (Platform.OS === 'web') {
 }
 
 // Connect to Firestore emulator in development (optional)
-if (__DEV__ && Platform.OS === 'web') {
-  try {
-    connectFirestoreEmulator(db, 'localhost', 8080);
-  } catch (error) {
-    console.log('Firestore emulator already connected or not available');
-  }
-}
+// Commented out emulator connection to use production Firebase
+// if (__DEV__ && Platform.OS === 'web') {
+//   try {
+//     connectFirestoreEmulator(db, 'localhost', 8080);
+//   } catch (error) {
+//     console.log('Firestore emulator already connected or not available');
+//   }
+// }
 
 export { auth, db, storage, messaging, analytics };
 export default app;
