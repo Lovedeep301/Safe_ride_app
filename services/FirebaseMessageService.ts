@@ -67,17 +67,24 @@ class FirebaseMessageServiceClass {
   async getMessages(conversationId: string): Promise<FirebaseMessage[]> {
     try {
       const messagesRef = collection(db, 'messages');
+      // Use simple query without orderBy to avoid index requirement
       const q = query(
         messagesRef,
-        where('conversationId', '==', conversationId),
-        orderBy('timestamp', 'asc')
+        where('conversationId', '==', conversationId)
       );
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const messages = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseMessage));
+      
+      // Sort in memory instead of using Firestore orderBy
+      return messages.sort((a, b) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return aTime - bTime;
+      });
     } catch (error) {
       console.error('Error fetching messages:', error);
       return [];
@@ -86,17 +93,25 @@ class FirebaseMessageServiceClass {
 
   subscribeToMessages(conversationId: string, callback: (messages: FirebaseMessage[]) => void) {
     const messagesRef = collection(db, 'messages');
+    // Use simple query without orderBy to avoid index requirement
     const q = query(
       messagesRef,
-      where('conversationId', '==', conversationId),
-      orderBy('timestamp', 'asc')
+      where('conversationId', '==', conversationId)
     );
 
     return onSnapshot(q, (snapshot) => {
-      const messages = snapshot.docs.map(doc => ({
+      let messages = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseMessage));
+      
+      // Sort in memory instead of using Firestore orderBy
+      messages = messages.sort((a, b) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return aTime - bTime;
+      });
+      
       callback(messages);
     });
   }

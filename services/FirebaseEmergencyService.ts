@@ -57,17 +57,24 @@ class FirebaseEmergencyServiceClass {
   async getActiveAlerts(): Promise<FirebaseEmergencyAlert[]> {
     try {
       const alertsRef = collection(db, 'emergencyAlerts');
+      // Use simple query without orderBy to avoid index requirement
       const q = query(
         alertsRef,
-        where('status', '==', 'active'),
-        orderBy('timestamp', 'desc')
+        where('status', '==', 'active')
       );
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const alerts = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseEmergencyAlert));
+      
+      // Sort in memory instead of using Firestore orderBy
+      return alerts.sort((a, b) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return bTime - aTime; // desc order
+      });
     } catch (error) {
       console.error('Error fetching active alerts:', error);
       return [];
@@ -77,13 +84,19 @@ class FirebaseEmergencyServiceClass {
   async getAllAlerts(): Promise<FirebaseEmergencyAlert[]> {
     try {
       const alertsRef = collection(db, 'emergencyAlerts');
-      const q = query(alertsRef, orderBy('timestamp', 'desc'));
-      
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      // Get all alerts without orderBy to avoid index requirement
+      const querySnapshot = await getDocs(alertsRef);
+      const alerts = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseEmergencyAlert));
+      
+      // Sort in memory instead of using Firestore orderBy
+      return alerts.sort((a, b) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return bTime - aTime; // desc order
+      });
     } catch (error) {
       console.error('Error fetching all alerts:', error);
       return [];
@@ -92,30 +105,47 @@ class FirebaseEmergencyServiceClass {
 
   subscribeToActiveAlerts(callback: (alerts: FirebaseEmergencyAlert[]) => void) {
     const alertsRef = collection(db, 'emergencyAlerts');
+    // Use simple query without orderBy to avoid index requirement
     const q = query(
       alertsRef,
-      where('status', '==', 'active'),
-      orderBy('timestamp', 'desc')
+      where('status', '==', 'active')
     );
 
     return onSnapshot(q, (snapshot) => {
-      const alerts = snapshot.docs.map(doc => ({
+      let alerts = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseEmergencyAlert));
+      
+      // Sort in memory instead of using Firestore orderBy
+      alerts = alerts.sort((a, b) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return bTime - aTime; // desc order
+      });
+      
       callback(alerts);
     });
   }
 
   subscribeToAllAlerts(callback: (alerts: FirebaseEmergencyAlert[]) => void) {
     const alertsRef = collection(db, 'emergencyAlerts');
-    const q = query(alertsRef, orderBy('timestamp', 'desc'));
+    // Get all alerts without orderBy to avoid index requirement
+    const querySnapshot = collection(db, 'emergencyAlerts');
 
-    return onSnapshot(q, (snapshot) => {
-      const alerts = snapshot.docs.map(doc => ({
+    return onSnapshot(querySnapshot, (snapshot) => {
+      let alerts = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseEmergencyAlert));
+      
+      // Sort in memory instead of using Firestore orderBy
+      alerts = alerts.sort((a, b) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return bTime - aTime; // desc order
+      });
+      
       callback(alerts);
     });
   }
@@ -174,17 +204,24 @@ class FirebaseEmergencyServiceClass {
   async getAlertsByUser(userId: string): Promise<FirebaseEmergencyAlert[]> {
     try {
       const alertsRef = collection(db, 'emergencyAlerts');
+      // Use simple query without orderBy to avoid index requirement
       const q = query(
         alertsRef,
-        where('userId', '==', userId),
-        orderBy('timestamp', 'desc')
+        where('userId', '==', userId)
       );
       
       const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
+      const alerts = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as FirebaseEmergencyAlert));
+      
+      // Sort in memory instead of using Firestore orderBy
+      return alerts.sort((a, b) => {
+        const aTime = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
+        const bTime = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
+        return bTime - aTime; // desc order
+      });
     } catch (error) {
       console.error('Error fetching user alerts:', error);
       return [];
