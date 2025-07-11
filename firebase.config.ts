@@ -7,21 +7,26 @@ import { getAnalytics } from "firebase/analytics";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// 🔥 REPLACE THIS WITH YOUR ACTUAL FIREBASE CONFIG
+// Get this from Firebase Console → Project Settings → General → Your apps
 const firebaseConfig = {
-  apiKey: "AIzaSyC4WwWudOsiyIWd8lr8V2ADJgcd_S12KJ4",
-  authDomain: "v-safe-b7023.firebaseapp.com",
-  projectId: "v-safe-b7023",
-  storageBucket: "v-safe-b7023.firebasestorage.app",
-  messagingSenderId: "83541218741",
-  appId: "1:83541218741:web:a2117d5fc4ed78fd19f5fc",
-  measurementId: "G-3WK7DS0JXM"
+  apiKey: "YOUR_ACTUAL_API_KEY_HERE",
+  authDomain: "your-project-id.firebaseapp.com",
+  projectId: "your-project-id",
+  storageBucket: "your-project-id.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890abcdef",
+  measurementId: "G-XXXXXXXXXX"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+
+// Initialize Analytics (optional)
+let analytics;
+if (Platform.OS === 'web') {
+  analytics = getAnalytics(app);
+}
 
 // Initialize Firebase Auth with persistence
 let auth;
@@ -58,5 +63,5 @@ if (__DEV__ && Platform.OS === 'web') {
   }
 }
 
-export { auth, db, storage, messaging };
+export { auth, db, storage, messaging, analytics };
 export default app;
