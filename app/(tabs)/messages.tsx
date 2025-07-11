@@ -8,7 +8,8 @@ import {
   FlatList,
   TextInput,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { 
   MessageCircle, 
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { MessageService, Conversation, Message } from '@/services/MessageService';
+import { FirebaseMessageService } from '@/services/FirebaseMessageService';
 
 type Screen = 'conversations' | 'chat';
 
@@ -29,11 +31,34 @@ export default function MessagesScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [messageSubscription, setMessageSubscription] = useState<(() => void) | null>(null);
+  const [conversationSubscription, setConversationSubscription] = useState<(() => void) | null>(null);
   const user = AuthService.getCurrentUser();
 
   useEffect(() => {
     loadConversations();
   }, []);
+
+  useEffect(() => {
+    // Set up real-time conversation updates
+    if (user) {
+      try {
+        const unsubscribe = FirebaseMessageService.subscribeToConversations(user.id, (firebaseConversations) => {
+          const convertedConversations = firebaseConversations.map(conv => ({
+            ...conv,
+            lastMessage: conv.lastMessage ? {
+              ...conv.lastMessage,
+              timestamp: conv.lastMessage.timestamp?.toDate ? conv.lastMessage.timestamp.toDate() : new Date()
+            } : undefined
+          }));
+          setConversations(convertedConversations);
+        });
+        setConversationSubscription(() => unsubscribe);
+      } catch (error) {
+        console.log('Firebase real-time updates not available, using polling');
+      }
+    }
+  }, [user]);
 
   const loadConversations = async () => {
     try {
@@ -48,6 +73,26 @@ export default function MessagesScreen() {
     setSelectedConversation(conversation);
     setCurrentScreen('chat');
     
+    // Clean up previous message subscription
+    if (messageSubscription) {
+      messageSubscription();
+      setMessageSubscription(null);
+    }
+    
+    // Set up real-time message updates for this conversation
+    try {
+      const unsubscribe = FirebaseMessageService.subscribeToMessages(conversation.id, (firebaseMessages) => {
+        const convertedMessages = firebaseMessages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date()
+        }));
+        setMessages(convertedMessages);
+      });
+      setMessageSubscription(() => unsubscribe);
+    } catch (error) {
+      console.log('Firebase real-time messages not available, using manual refresh');
+    }
+    
     try {
       const msgs = await MessageService.getMessages(conversation.id);
       setMessages(msgs);
@@ -61,6 +106,14 @@ export default function MessagesScreen() {
     }
   };
 
+  // Clean up subscriptions when component unmounts or screen changes
+  useEffect(() => {
+    return () => {
+      messageSubscription?.();
+      conversationSubscription?.();
+    };
+  }, [messageSubscription, conversationSubscription]);
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !user) return;
 
@@ -73,11 +126,23 @@ export default function MessagesScreen() {
         user.name
       );
       
-      setMessages(prev => [...prev, message]);
+      // Only update messages if not using real-time subscription
+      if (!messageSubscription) {
+        setMessages(prev => [...prev, message]);
+      }
       setNewMessage('');
-      loadConversations(); // Refresh conversations list
+      
+      // Only refresh conversations if not using real-time subscription
+      if (!conversationSubscription) {
+        loadConversations();
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      if (Platform.OS === 'web') {
+        alert('Failed to send message. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to send message. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -175,8 +240,20 @@ export default function MessagesScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Messages</Text>
+        <Text style={styles.headerSubtitle}>
+          {conversations.length > 0 ? `${conversations.length} conversations` : 'No conversations yet'}
+        </Text>
       </View>
       
+      {conversations.length === 0 ? (
+        <View style={styles.emptyState}>
+          <MessageCircle size={48} color="#9CA3AF" />
+          <Text style={styles.emptyTitle}>No Messages Yet</Text>
+          <Text style={styles.emptyDescription}>
+            Start a conversation with your team members or wait for messages to appear here.
+          </Text>
+        </View>
+      ) : (
       <FlatList
         data={conversations}
         keyExtractor={(item) => item.id}
@@ -185,6 +262,7 @@ export default function MessagesScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.conversationsContent}
       />
+      )}
     </SafeAreaView>
   );
 
@@ -270,6 +348,32 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontFamily: 'Inter-Bold',
     color: '#1F2937',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontFamily: 'Inter-SemiBold',
+    color: '#1F2937',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyDescription: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 24,
   },
   conversationsList: {
     flex: 1,

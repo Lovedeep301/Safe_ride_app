@@ -8,11 +8,13 @@ import {
   FlatList,
   TextInput,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { MessageCircle, Send, Users, Clock, ArrowLeft, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { MessageService, Conversation, Message } from '@/services/MessageService';
+import { FirebaseMessageService } from '@/services/FirebaseMessageService';
 
 type Screen = 'conversations' | 'chat';
 
@@ -23,11 +25,34 @@ export default function DriverMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [messageSubscription, setMessageSubscription] = useState<(() => void) | null>(null);
+  const [conversationSubscription, setConversationSubscription] = useState<(() => void) | null>(null);
   const user = AuthService.getCurrentUser();
 
   useEffect(() => {
     loadConversations();
   }, []);
+
+  useEffect(() => {
+    // Set up real-time conversation updates for drivers
+    if (user) {
+      try {
+        const unsubscribe = FirebaseMessageService.subscribeToConversations(user.id, (firebaseConversations) => {
+          const convertedConversations = firebaseConversations.map(conv => ({
+            ...conv,
+            lastMessage: conv.lastMessage ? {
+              ...conv.lastMessage,
+              timestamp: conv.lastMessage.timestamp?.toDate ? conv.lastMessage.timestamp.toDate() : new Date()
+            } : undefined
+          }));
+          setConversations(convertedConversations);
+        });
+        setConversationSubscription(() => unsubscribe);
+      } catch (error) {
+        console.log('Firebase real-time updates not available, using polling');
+      }
+    }
+  }, [user]);
 
   const loadConversations = async () => {
     try {
@@ -42,6 +67,26 @@ export default function DriverMessages() {
     setSelectedConversation(conversation);
     setCurrentScreen('chat');
     
+    // Clean up previous message subscription
+    if (messageSubscription) {
+      messageSubscription();
+      setMessageSubscription(null);
+    }
+    
+    // Set up real-time message updates for this conversation
+    try {
+      const unsubscribe = FirebaseMessageService.subscribeToMessages(conversation.id, (firebaseMessages) => {
+        const convertedMessages = firebaseMessages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date()
+        }));
+        setMessages(convertedMessages);
+      });
+      setMessageSubscription(() => unsubscribe);
+    } catch (error) {
+      console.log('Firebase real-time messages not available, using manual refresh');
+    }
+    
     try {
       const msgs = await MessageService.getMessages(conversation.id);
       setMessages(msgs);
@@ -55,6 +100,14 @@ export default function DriverMessages() {
     }
   };
 
+  // Clean up subscriptions when component unmounts or screen changes
+  useEffect(() => {
+    return () => {
+      messageSubscription?.();
+      conversationSubscription?.();
+    };
+  }, [messageSubscription, conversationSubscription]);
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !user) return;
 
@@ -67,11 +120,23 @@ export default function DriverMessages() {
         user.name
       );
       
-      setMessages(prev => [...prev, message]);
+      // Only update messages if not using real-time subscription
+      if (!messageSubscription) {
+        setMessages(prev => [...prev, message]);
+      }
       setNewMessage('');
-      loadConversations();
+      
+      // Only refresh conversations if not using real-time subscription
+      if (!conversationSubscription) {
+        loadConversations();
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      if (Platform.OS === 'web') {
+        alert('Failed to send message. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to send message. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
