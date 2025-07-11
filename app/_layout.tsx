@@ -11,12 +11,13 @@ import {
   Inter_700Bold
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
-import { AuthService } from '@/services/AuthService';
+import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
+  const { loading: authLoading } = useFirebaseAuth();
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -26,15 +27,12 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if ((fontsLoaded || fontError) && !authLoading) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, authLoading]);
 
   useEffect(() => {
-    // Initialize auth service
-    AuthService.initialize();
-    
     // Enable rotation support
     const enableRotation = async () => {
       try {
@@ -46,16 +44,10 @@ export default function RootLayout() {
     
     enableRotation();
     
-    // Sync user data periodically
-    const syncInterval = setInterval(() => {
-      AuthService.syncUserData();
-    }, 30000); // Sync every 30 seconds
-    
-    return () => {
-      clearInterval(syncInterval);
-    };
   }, []);
-  if (!fontsLoaded && !fontError) {
+  
+  // Show loading screen while fonts or auth are loading
+  if ((!fontsLoaded && !fontError) || authLoading) {
     return null;
   }
 

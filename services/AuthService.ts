@@ -1,3 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
 export interface User {
   id: string;
   name: string;
@@ -70,36 +73,24 @@ class AuthServiceClass {
           };
           
           // Store in local storage
-          const storage = this.getStorage();
-          if (storage) {
-            storage.setItem('currentUser', JSON.stringify(this.currentUser));
-          }
+          this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
         } else {
           // User signed out
           this.currentUser = null;
-          const storage = this.getStorage();
-          if (storage) {
-            storage.removeItem('currentUser');
-          }
+          this.removeStorageItem('currentUser');
         }
       });
       
       // Try to restore user from storage
-      const storage = this.getStorage();
-      if (storage) {
-        const stored = storage.getItem('currentUser');
-        if (stored) {
-          const userData = JSON.parse(stored);
-          this.currentUser = userData;
-        }
+      const stored = await this.getStorageItem('currentUser');
+      if (stored) {
+        const userData = JSON.parse(stored);
+        this.currentUser = userData;
       }
     } catch (error) {
       console.error('Error initializing auth service:', error);
       // Clear invalid storage
-      const storage = this.getStorage();
-      if (storage) {
-        storage.removeItem('currentUser');
-      }
+      this.removeStorageItem('currentUser');
     }
     
     this.isInitialized = true;
@@ -159,10 +150,7 @@ class AuthServiceClass {
           };
           
           // Store in local storage
-          const storage = this.getStorage();
-          if (storage) {
-            storage.setItem('currentUser', JSON.stringify(this.currentUser));
-          }
+          this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
           return true;
         }
       }
@@ -181,10 +169,7 @@ class AuthServiceClass {
       await FirebaseAuthService.signOut();
       
       this.currentUser = null;
-      const storage = this.getStorage();
-      if (storage) {
-        storage.removeItem('currentUser');
-      }
+      this.removeStorageItem('currentUser');
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -312,10 +297,7 @@ class AuthServiceClass {
       // Update current user if it's the same user
       if (this.currentUser?.id === userId) {
         this.currentUser = { ...this.currentUser, ...updates };
-        const storage = this.getStorage();
-        if (storage) {
-          storage.setItem('currentUser', JSON.stringify(this.currentUser));
-        }
+        this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
       }
       
       const updatedUser = this.currentUser || { ...updates, id: userId } as User;
@@ -362,10 +344,7 @@ class AuthServiceClass {
         };
         this.currentUser.lastSeen = new Date();
         
-        const storage = this.getStorage();
-        if (storage) {
-          storage.setItem('currentUser', JSON.stringify(this.currentUser));
-        }
+        this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
         
         // Notify listeners about the updated user
         this.notifyListeners('userUpdated', this.currentUser);
@@ -404,20 +383,69 @@ class AuthServiceClass {
   }
 
   // Cross-platform storage helper
-  private getStorage(): Storage | null {
+  private getStorage(): Storage | typeof AsyncStorage | null {
     try {
       // Web environment
       if (typeof window !== 'undefined' && window.localStorage) {
         return window.localStorage;
       }
       
-      // React Native environment - use AsyncStorage equivalent
-      // For now, return null as we don't have AsyncStorage imported
-      // In a real app, you would import and use AsyncStorage here
+      // React Native environment - use AsyncStorage
+      if (Platform.OS !== 'web') {
+        return AsyncStorage;
+      }
+      
       return null;
     } catch (error) {
       console.error('Storage access error:', error);
       return null;
+    }
+  }
+
+  // Helper method for async storage operations
+  private async getStorageItem(key: string): Promise<string | null> {
+    const storage = this.getStorage();
+    if (!storage) return null;
+    
+    try {
+      if (Platform.OS === 'web' && 'getItem' in storage) {
+        return (storage as Storage).getItem(key);
+      } else if (Platform.OS !== 'web') {
+        return await (storage as typeof AsyncStorage).getItem(key);
+      }
+    } catch (error) {
+      console.error('Error getting storage item:', error);
+    }
+    return null;
+  }
+
+  private async setStorageItem(key: string, value: string): Promise<void> {
+    const storage = this.getStorage();
+    if (!storage) return;
+    
+    try {
+      if (Platform.OS === 'web' && 'setItem' in storage) {
+        (storage as Storage).setItem(key, value);
+      } else if (Platform.OS !== 'web') {
+        await (storage as typeof AsyncStorage).setItem(key, value);
+      }
+    } catch (error) {
+      console.error('Error setting storage item:', error);
+    }
+  }
+
+  private async removeStorageItem(key: string): Promise<void> {
+    const storage = this.getStorage();
+    if (!storage) return;
+    
+    try {
+      if (Platform.OS === 'web' && 'removeItem' in storage) {
+        (storage as Storage).removeItem(key);
+      } else if (Platform.OS !== 'web') {
+        await (storage as typeof AsyncStorage).removeItem(key);
+      }
+    } catch (error) {
+      console.error('Error removing storage item:', error);
     }
   }
 
