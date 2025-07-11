@@ -23,7 +23,7 @@ export default function TestFirebaseFeatures() {
   const [messages, setMessages] = useState<any[]>([]);
   const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
   const [locationUpdates, setLocationUpdates] = useState<any[]>([]);
-  const { user, loading } = useFirebaseAuth();
+  const { user, loading, error } = useFirebaseAuth();
 
   useEffect(() => {
     // Debug authentication status
