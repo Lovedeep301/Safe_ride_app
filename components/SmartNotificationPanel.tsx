@@ -12,20 +12,7 @@ import {
   Alert,
   Platform
 } from 'react-native';
-import { 
-  Bell, 
-  MapPin, 
-  Home, 
-  Clock, 
-  AlertTriangle, 
-  CheckCircle, 
-  Settings, 
-  X,
-  Shield,
-  Car,
-  Users,
-  Navigation
-} from 'lucide-react-native';
+import { Bell, MapPin, Chrome as Home, Clock, TriangleAlert as AlertTriangle, CircleCheck as CheckCircle, Settings, X, Shield, Car, Users, Navigation } from 'lucide-react-native';
 import { NotificationService, Notification, NotificationPreferences } from '@/services/NotificationService';
 import { GeofencingService } from '@/services/GeofencingService';
 import { SafetyReminderService } from '@/services/SafetyReminderService';
