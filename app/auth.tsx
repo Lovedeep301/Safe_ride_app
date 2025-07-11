@@ -12,33 +12,20 @@ import {
   ScrollView
 } from 'react-native';
 import { router } from 'expo-router';
-import { LogIn, Shield, Eye, EyeOff, User, Car, Settings, Lock } from 'lucide-react-native';
+import { LogIn, Shield, Eye, EyeOff, UserPlus } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
+import { FirebaseAuthService } from '@/services/FirebaseAuthService';
 
 export default function AuthScreen() {
   const [uniqueId, setUniqueId] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [role, setRole] = useState<'employee' | 'driver' | 'admin'>('employee');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showDemoCredentials, setShowDemoCredentials] = useState(false);
-
-  const demoCredentials = [
-    // Admin accounts
-    { id: 'ADMIN001', name: 'John Doe', role: 'Admin', password: 'admin123', icon: Settings, color: '#DC2626' },
-    { id: 'ADMIN002', name: 'Sarah Wilson', role: 'Admin', password: 'admin123', icon: Settings, color: '#DC2626' },
-    
-    // Driver accounts
-    { id: 'DRV001', name: 'Michael Rodriguez', role: 'Driver', password: 'driver123', icon: Car, color: '#059669' },
-    { id: 'DRV002', name: 'Jennifer Chen', role: 'Driver', password: 'driver123', icon: Car, color: '#059669' },
-    { id: 'DRV003', name: 'Robert Kim', role: 'Driver', password: 'driver123', icon: Car, color: '#059669' },
-    
-    // Employee accounts
-    { id: 'EMP001', name: 'Alice Johnson', role: 'Employee', password: 'emp123', icon: User, color: '#2563EB' },
-    { id: 'EMP002', name: 'Bob Smith', role: 'Employee', password: 'emp123', icon: User, color: '#2563EB' },
-    { id: 'EMP003', name: 'Carol Davis', role: 'Employee', password: 'emp123', icon: User, color: '#2563EB' },
-    { id: 'EMP004', name: 'David Brown', role: 'Employee', password: 'emp123', icon: User, color: '#2563EB' },
-    { id: 'EMP005', name: 'Eva Martinez', role: 'Employee', password: 'emp123', icon: User, color: '#2563EB' },
-  ];
+  const [isSignUp, setIsSignUp] = useState(false);
 
   const handleLogin = async () => {
     if (!uniqueId.trim()) {
@@ -62,9 +49,6 @@ export default function AuthScreen() {
     setIsLoading(true);
     
     try {
-      // Sync user data before login attempt
-      await AuthService.syncUserData();
-      
       const success = await AuthService.login(uniqueId.trim(), password.trim());
       if (success) {
         const user = AuthService.getCurrentUser();
@@ -77,9 +61,9 @@ export default function AuthScreen() {
         }
       } else {
         if (Platform.OS === 'web') {
-          alert('Invalid credentials or account not found. Please check your ID and password, or contact your administrator if you believe this is an error.');
+          alert('Invalid credentials. Please check your ID and password.');
         } else {
-          Alert.alert('Login Failed', 'Invalid credentials or account not found. Please check your ID and password, or contact your administrator if you believe this is an error.');
+          Alert.alert('Login Failed', 'Invalid credentials. Please check your ID and password.');
         }
       }
     } catch (error) {
@@ -93,18 +77,61 @@ export default function AuthScreen() {
     }
   };
 
-  const handleDemoLogin = (demoId: string, demoPassword: string) => {
-    setUniqueId(demoId);
-    setPassword(demoPassword);
+  const handleSignUp = async () => {
+    if (!name.trim() || !email.trim() || !uniqueId.trim() || !password.trim()) {
+      if (Platform.OS === 'web') {
+        alert('Please fill in all required fields');
+      } else {
+        Alert.alert('Error', 'Please fill in all required fields');
+      }
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const userData = {
+        name: name.trim(),
+        uniqueId: uniqueId.trim().toUpperCase(),
+        email: email.trim(),
+        phone: phone.trim(),
+        role,
+        password: password.trim()
+      };
+
+      await AuthService.createUser(userData);
+      
+      if (Platform.OS === 'web') {
+        alert('Account created successfully! You can now log in.');
+      } else {
+        Alert.alert('Success', 'Account created successfully! You can now log in.');
+      }
+      
+      // Switch to login mode
+      setIsSignUp(false);
+      setName('');
+      setEmail('');
+      setPhone('');
+      setPassword('');
+      
+    } catch (error: any) {
+      if (Platform.OS === 'web') {
+        alert(error.message || 'Failed to create account. Please try again.');
+      } else {
+        Alert.alert('Error', error.message || 'Failed to create account. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const getRoleGroups = () => {
-    const groups = {
-      Admin: demoCredentials.filter(cred => cred.role === 'Admin'),
-      Driver: demoCredentials.filter(cred => cred.role === 'Driver'),
-      Employee: demoCredentials.filter(cred => cred.role === 'Employee'),
-    };
-    return groups;
+  const toggleMode = () => {
+    setIsSignUp(!isSignUp);
+    setName('');
+    setEmail('');
+    setPhone('');
+    setUniqueId('');
+    setPassword('');
   };
 
   return (
@@ -121,20 +148,88 @@ export default function AuthScreen() {
             <View style={styles.iconContainer}>
               <Shield size={50} color="#2563EB" />
             </View>
-            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.title}>{isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
             <Text style={styles.subtitle}>
-              Sign in to access your portal
+              {isSignUp ? 'Create a new account to get started' : 'Sign in to access your portal'}
             </Text>
           </View>
 
           <View style={styles.form}>
+            {isSignUp && (
+              <>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Full Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#9CA3AF"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Email</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Enter your email address"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Phone (Optional)</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="Enter your phone number"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="phone-pad"
+                    returnKeyType="next"
+                  />
+                </View>
+
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Role</Text>
+                  <View style={styles.roleSelector}>
+                    {(['employee', 'driver', 'admin'] as const).map((roleOption) => (
+                      <TouchableOpacity
+                        key={roleOption}
+                        style={[
+                          styles.roleOption,
+                          role === roleOption && styles.roleOptionSelected
+                        ]}
+                        onPress={() => setRole(roleOption)}
+                      >
+                        <Text style={[
+                          styles.roleOptionText,
+                          role === roleOption && styles.roleOptionTextSelected
+                        ]}>
+                          {roleOption.charAt(0).toUpperCase() + roleOption.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </>
+            )}
+
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Employee/Driver/Admin ID</Text>
+              <Text style={styles.label}>{isSignUp ? 'Unique ID' : 'Employee/Driver/Admin ID'}</Text>
               <TextInput
                 style={styles.input}
                 value={uniqueId}
                 onChangeText={setUniqueId}
-                placeholder="Enter your unique ID (e.g., EMP001, DRV001, ADMIN001)"
+                placeholder={isSignUp ? "Create a unique ID (e.g., EMP001)" : "Enter your unique ID"}
                 placeholderTextColor="#9CA3AF"
                 autoCapitalize="characters"
                 autoCorrect={false}
@@ -170,77 +265,44 @@ export default function AuthScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
-              onPress={handleLogin}
+              style={[styles.actionButton, isLoading && styles.actionButtonDisabled]}
+              onPress={isSignUp ? handleSignUp : handleLogin}
               disabled={isLoading}
             >
-              <LogIn size={20} color="#FFFFFF" />
-              <Text style={styles.loginButtonText}>
-                {isLoading ? 'Signing In...' : 'Sign In'}
+              {isSignUp ? (
+                <UserPlus size={20} color="#FFFFFF" />
+              ) : (
+                <LogIn size={20} color="#FFFFFF" />
+              )}
+              <Text style={styles.actionButtonText}>
+                {isLoading 
+                  ? (isSignUp ? 'Creating Account...' : 'Signing In...') 
+                  : (isSignUp ? 'Create Account' : 'Sign In')
+                }
               </Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.demoSection}>
+          <View style={styles.toggleSection}>
             <TouchableOpacity 
-              style={styles.demoToggle}
-              onPress={() => setShowDemoCredentials(!showDemoCredentials)}
+              style={styles.toggleButton}
+              onPress={toggleMode}
             >
-              {showDemoCredentials ? (
-                <EyeOff size={20} color="#6B7280" />
-              ) : (
-                <Eye size={20} color="#6B7280" />
-              )}
-              <Text style={styles.demoToggleText}>
-                {showDemoCredentials ? 'Hide' : 'Show'} Demo Accounts
+              <Text style={styles.toggleText}>
+                {isSignUp 
+                  ? 'Already have an account? Sign In' 
+                  : "Don't have an account? Create One"
+                }
               </Text>
             </TouchableOpacity>
-
-            {showDemoCredentials && (
-              <View style={styles.demoCredentials}>
-                <Text style={styles.demoTitle}>Demo Accounts by Role</Text>
-                
-                {Object.entries(getRoleGroups()).map(([role, accounts]) => (
-                  <View key={role} style={styles.roleGroup}>
-                    <Text style={styles.roleTitle}>{role}s</Text>
-                    {accounts.map((cred) => {
-                      const IconComponent = cred.icon;
-                      return (
-                        <TouchableOpacity
-                          key={cred.id}
-                          style={styles.demoItem}
-                          onPress={() => handleDemoLogin(cred.id, cred.password)}
-                        >
-                          <View style={styles.demoItemLeft}>
-                            <View style={[styles.roleIcon, { backgroundColor: `${cred.color}15` }]}>
-                              <IconComponent size={16} color={cred.color} />
-                            </View>
-                            <View style={styles.demoInfo}>
-                              <Text style={styles.demoName}>{cred.name}</Text>
-                              <Text style={[styles.demoRole, { color: cred.color }]}>{cred.role}</Text>
-                            </View>
-                          </View>
-                          <View style={styles.demoCredentialsContainer}>
-                            <Text style={[styles.demoId, { backgroundColor: `${cred.color}15`, color: cred.color }]}>
-                              {cred.id}
-                            </Text>
-                            <View style={styles.passwordContainer}>
-                              <Lock size={12} color="#6B7280" />
-                              <Text style={styles.demoPassword}>{cred.password}</Text>
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                ))}
-              </View>
-            )}
           </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Contact your administrator if you need help with your credentials
+              {isSignUp 
+                ? 'By creating an account, you agree to our terms of service'
+                : 'Contact your administrator if you need help with your credentials'
+              }
             </Text>
           </View>
         </ScrollView>
@@ -336,7 +398,31 @@ const styles = StyleSheet.create({
   passwordToggle: {
     padding: 16,
   },
-  loginButton: {
+  roleSelector: {
+    flexDirection: 'row',
+    borderRadius: 8,
+    backgroundColor: '#F3F4F6',
+    padding: 4,
+  },
+  roleOption: {
+    flex: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  roleOptionSelected: {
+    backgroundColor: '#2563EB',
+  },
+  roleOptionText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  roleOptionTextSelected: {
+    color: '#FFFFFF',
+  },
+  actionButton: {
     height: 56,
     backgroundColor: '#2563EB',
     borderRadius: 12,
@@ -350,113 +436,27 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  loginButtonDisabled: {
+  actionButtonDisabled: {
     opacity: 0.6,
   },
-  loginButtonText: {
+  actionButtonText: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',
   },
-  demoSection: {
+  toggleSection: {
     marginBottom: 32,
-  },
-  demoToggle: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    gap: 8,
   },
-  demoToggleText: {
+  toggleButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  toggleText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
-    color: '#6B7280',
-  },
-  demoCredentials: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  demoTitle: {
-    fontSize: 16,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-    marginBottom: 16,
+    color: '#2563EB',
     textAlign: 'center',
-  },
-  roleGroup: {
-    marginBottom: 16,
-  },
-  roleTitle: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#374151',
-    marginBottom: 8,
-    paddingLeft: 4,
-  },
-  demoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 8,
-    marginBottom: 6,
-  },
-  demoItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  roleIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  demoInfo: {
-    flex: 1,
-  },
-  demoName: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
-  },
-  demoRole: {
-    fontSize: 12,
-    fontFamily: 'Inter-Regular',
-    marginTop: 2,
-  },
-  demoCredentialsContainer: {
-    alignItems: 'flex-end',
-  },
-  demoId: {
-    fontSize: 12,
-    fontFamily: 'Inter-Medium',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 4,
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  demoPassword: {
-    fontSize: 11,
-    fontFamily: 'Inter-Regular',
-    color: '#6B7280',
   },
   footer: {
     alignItems: 'center',
