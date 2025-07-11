@@ -32,6 +32,11 @@ export default function FirebaseSetupGuide() {
   const securityRules = `rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Allow unauthenticated users to query users collection for login lookup
+    match /users {
+      allow list: if true;
+    }
+    
     // Users can read/write their own data
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
