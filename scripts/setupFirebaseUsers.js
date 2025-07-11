@@ -1,6 +1,7 @@
+// Updated Firebase User Setup Script with better compatibility
 const { initializeApp } = require('firebase/app');
-const { getAuth, createUserWithEmailAndPassword, updateProfile } = require('firebase/auth');
-const { getFirestore, doc, setDoc, serverTimestamp } = require('firebase/firestore');
+const { getAuth, createUserWithEmailAndPassword, connectAuthEmulator } = require('firebase/auth');
+const { getFirestore, doc, setDoc, connectFirestoreEmulator } = require('firebase/firestore');
 
 // Your Firebase configuration
 const firebaseConfig = {
@@ -67,20 +68,6 @@ const demoUsers = [
       capacity: 15
     }
   },
-  {
-    uniqueId: 'DRV003',
-    name: 'Robert Kim',
-    email: 'driver003@company.com',
-    password: 'driver123',
-    role: 'driver',
-    phone: '+1-555-0203',
-    licenseNumber: 'DL456789123',
-    vehicleInfo: {
-      plateNumber: 'DEF-9012',
-      model: 'Mercedes Sprinter',
-      capacity: 18
-    }
-  },
   
   // Employee accounts
   {
@@ -118,60 +105,6 @@ const demoUsers = [
       phone: '+1-555-0402',
       relationship: 'Spouse'
     }
-  },
-  {
-    uniqueId: 'EMP003',
-    name: 'Carol Davis',
-    email: 'employee003@company.com',
-    password: 'emp123',
-    role: 'employee',
-    phone: '+1-555-0303',
-    homeLocation: {
-      latitude: 40.7831,
-      longitude: -73.9712,
-      address: '789 Pine St, New York, NY'
-    },
-    emergencyContact: {
-      name: 'Robert Davis',
-      phone: '+1-555-0403',
-      relationship: 'Spouse'
-    }
-  },
-  {
-    uniqueId: 'EMP004',
-    name: 'David Brown',
-    email: 'employee004@company.com',
-    password: 'emp123',
-    role: 'employee',
-    phone: '+1-555-0304',
-    homeLocation: {
-      latitude: 40.7282,
-      longitude: -74.0776,
-      address: '321 Elm St, New York, NY'
-    },
-    emergencyContact: {
-      name: 'Lisa Brown',
-      phone: '+1-555-0404',
-      relationship: 'Spouse'
-    }
-  },
-  {
-    uniqueId: 'EMP005',
-    name: 'Eva Martinez',
-    email: 'employee005@company.com',
-    password: 'emp123',
-    role: 'employee',
-    phone: '+1-555-0305',
-    homeLocation: {
-      latitude: 40.7411,
-      longitude: -74.0018,
-      address: '654 Cedar Rd, New York, NY'
-    },
-    emergencyContact: {
-      name: 'Carlos Martinez',
-      phone: '+1-555-0405',
-      relationship: 'Spouse'
-    }
   }
 ];
 
@@ -186,20 +119,15 @@ async function createFirebaseUser(userData) {
       userData.password
     );
 
-    // Update display name
-    await updateProfile(userCredential.user, {
-      displayName: userData.name
-    });
-
     // Create user document in Firestore
     const { password, ...userDataWithoutPassword } = userData;
     const firestoreUserData = {
       ...userDataWithoutPassword,
       firebaseUid: userCredential.user.uid,
       isActive: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      lastSeen: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastSeen: new Date().toISOString()
     };
 
     await setDoc(doc(db, 'users', userCredential.user.uid), firestoreUserData);
@@ -209,10 +137,11 @@ async function createFirebaseUser(userData) {
   } catch (error) {
     if (error.code === 'auth/email-already-in-use') {
       console.log(`⚠️  User already exists: ${userData.email}`);
+      return null;
     } else {
       console.error(`❌ Error creating ${userData.name}:`, error.message);
+      return null;
     }
-    return null;
   }
 }
 
@@ -237,7 +166,7 @@ async function setupAllUsers() {
     }
     
     // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 
   console.log('\n📊 Setup Summary:');
@@ -255,7 +184,18 @@ async function setupAllUsers() {
     
     console.log('\n💡 Note: Use the uniqueId (like ADMIN001) as the login ID in the app.');
   }
+  
+  process.exit(0);
 }
 
+// Handle errors gracefully
+process.on('unhandledRejection', (error) => {
+  console.error('❌ Unhandled error:', error);
+  process.exit(1);
+});
+
 // Run the setup
-setupAllUsers().catch(console.error);
+setupAllUsers().catch((error) => {
+  console.error('❌ Setup failed:', error);
+  process.exit(1);
+});
