@@ -9,12 +9,16 @@ import {
   Alert,
   Platform,
   KeyboardAvoidingView,
-  ScrollView
+  ScrollView,
+  Dimensions
 } from 'react-native';
 import { router } from 'expo-router';
-import { LogIn, Shield, Eye, EyeOff, UserPlus } from 'lucide-react-native';
+import { LogIn, Shield, Eye, EyeOff, UserPlus, Sparkles, ArrowRight } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { FirebaseAuthService } from '@/services/FirebaseAuthService';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width, height } = Dimensions.get('window');
 
 export default function AuthScreen() {
   const [uniqueId, setUniqueId] = useState('');
@@ -136,6 +140,11 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.backgroundGradient}
+      />
+      
       <KeyboardAvoidingView 
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -144,145 +153,183 @@ export default function AuthScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Header Section */}
           <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Shield size={50} color="#2563EB" />
+            <View style={styles.logoContainer}>
+              <LinearGradient
+                colors={['#4facfe', '#00f2fe']}
+                style={styles.logoGradient}
+              >
+                <Shield size={40} color="#FFFFFF" />
+              </LinearGradient>
+              <Sparkles size={20} color="#FFD700" style={styles.sparkle1} />
+              <Sparkles size={16} color="#FFD700" style={styles.sparkle2} />
             </View>
-            <Text style={styles.title}>{isSignUp ? 'Create Account' : 'Welcome Back'}</Text>
+            
+            <Text style={styles.title}>
+              {isSignUp ? 'Join SafeHub' : 'Welcome to SafeHub'}
+            </Text>
             <Text style={styles.subtitle}>
-              {isSignUp ? 'Create a new account to get started' : 'Sign in to access your portal'}
+              {isSignUp 
+                ? 'Create your account and stay connected' 
+                : 'Your safety is our priority'
+              }
             </Text>
           </View>
 
-          <View style={styles.form}>
-            {isSignUp && (
-              <>
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Full Name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="Enter your full name"
-                    placeholderTextColor="#9CA3AF"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Email</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={email}
-                    onChangeText={setEmail}
-                    placeholder="Enter your email address"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    returnKeyType="next"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Phone (Optional)</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={phone}
-                    onChangeText={setPhone}
-                    placeholder="Enter your phone number"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="phone-pad"
-                    returnKeyType="next"
-                  />
-                </View>
-
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>Role</Text>
-                  <View style={styles.roleSelector}>
-                    {(['employee', 'driver', 'admin'] as const).map((roleOption) => (
-                      <TouchableOpacity
-                        key={roleOption}
-                        style={[
-                          styles.roleOption,
-                          role === roleOption && styles.roleOptionSelected
-                        ]}
-                        onPress={() => setRole(roleOption)}
-                      >
-                        <Text style={[
-                          styles.roleOptionText,
-                          role === roleOption && styles.roleOptionTextSelected
-                        ]}>
-                          {roleOption.charAt(0).toUpperCase() + roleOption.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              </>
-            )}
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>{isSignUp ? 'Unique ID' : 'Employee/Driver/Admin ID'}</Text>
-              <TextInput
-                style={styles.input}
-                value={uniqueId}
-                onChangeText={setUniqueId}
-                placeholder={isSignUp ? "Create a unique ID (e.g., EMP001)" : "Enter your unique ID"}
-                placeholderTextColor="#9CA3AF"
-                autoCapitalize="characters"
-                autoCorrect={false}
-                returnKeyType="next"
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.passwordContainer}>
-                <TextInput
-                  style={styles.passwordInput}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#9CA3AF"
-                  secureTextEntry={!showPassword}
-                  autoCorrect={false}
-                  returnKeyType="go"
-                  onSubmitEditing={handleLogin}
-                />
-                <TouchableOpacity
-                  style={styles.passwordToggle}
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff size={20} color="#6B7280" />
-                  ) : (
-                    <Eye size={20} color="#6B7280" />
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <TouchableOpacity
-              style={[styles.actionButton, isLoading && styles.actionButtonDisabled]}
-              onPress={isSignUp ? handleSignUp : handleLogin}
-              disabled={isLoading}
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.9)']}
+              style={styles.cardGradient}
             >
-              {isSignUp ? (
-                <UserPlus size={20} color="#FFFFFF" />
-              ) : (
-                <LogIn size={20} color="#FFFFFF" />
+              {isSignUp && (
+                <>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Full Name</Text>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        value={name}
+                        onChangeText={setName}
+                        placeholder="Enter your full name"
+                        placeholderTextColor="#9CA3AF"
+                        autoCorrect={false}
+                        returnKeyType="next"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Email Address</Text>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        value={email}
+                        onChangeText={setEmail}
+                        placeholder="Enter your email"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        returnKeyType="next"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Phone Number</Text>
+                    <View style={styles.inputContainer}>
+                      <TextInput
+                        style={styles.input}
+                        value={phone}
+                        onChangeText={setPhone}
+                        placeholder="Enter your phone number"
+                        placeholderTextColor="#9CA3AF"
+                        keyboardType="phone-pad"
+                        returnKeyType="next"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Role</Text>
+                    <View style={styles.roleContainer}>
+                      {(['employee', 'driver', 'admin'] as const).map((roleOption) => (
+                        <TouchableOpacity
+                          key={roleOption}
+                          style={[
+                            styles.roleChip,
+                            role === roleOption && styles.roleChipSelected
+                          ]}
+                          onPress={() => setRole(roleOption)}
+                        >
+                          <Text style={[
+                            styles.roleChipText,
+                            role === roleOption && styles.roleChipTextSelected
+                          ]}>
+                            {roleOption.charAt(0).toUpperCase() + roleOption.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </>
               )}
-              <Text style={styles.actionButtonText}>
-                {isLoading 
-                  ? (isSignUp ? 'Creating Account...' : 'Signing In...') 
-                  : (isSignUp ? 'Create Account' : 'Sign In')
-                }
-              </Text>
-            </TouchableOpacity>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>
+                  {isSignUp ? 'Create Unique ID' : 'Employee/Driver ID'}
+                </Text>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    style={styles.input}
+                    value={uniqueId}
+                    onChangeText={setUniqueId}
+                    placeholder={isSignUp ? "e.g., EMP001" : "Enter your ID"}
+                    placeholderTextColor="#9CA3AF"
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    returnKeyType="next"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={styles.passwordInput}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#9CA3AF"
+                    secureTextEntry={!showPassword}
+                    autoCorrect={false}
+                    returnKeyType="go"
+                    onSubmitEditing={isSignUp ? handleSignUp : handleLogin}
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={20} color="#6B7280" />
+                    ) : (
+                      <Eye size={20} color="#6B7280" />
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Action Button */}
+              <TouchableOpacity
+                style={[styles.actionButton, isLoading && styles.actionButtonDisabled]}
+                onPress={isSignUp ? handleSignUp : handleLogin}
+                disabled={isLoading}
+              >
+                <LinearGradient
+                  colors={isLoading ? ['#9CA3AF', '#6B7280'] : ['#667eea', '#764ba2']}
+                  style={styles.buttonGradient}
+                >
+                  {isSignUp ? (
+                    <UserPlus size={20} color="#FFFFFF" />
+                  ) : (
+                    <LogIn size={20} color="#FFFFFF" />
+                  )}
+                  <Text style={styles.actionButtonText}>
+                    {isLoading 
+                      ? (isSignUp ? 'Creating...' : 'Signing In...') 
+                      : (isSignUp ? 'Create Account' : 'Sign In')
+                    }
+                  </Text>
+                  <ArrowRight size={20} color="#FFFFFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </LinearGradient>
           </View>
 
+          {/* Toggle Section */}
           <View style={styles.toggleSection}>
             <TouchableOpacity 
               style={styles.toggleButton}
@@ -290,18 +337,22 @@ export default function AuthScreen() {
             >
               <Text style={styles.toggleText}>
                 {isSignUp 
-                  ? 'Already have an account? Sign In' 
-                  : "Don't have an account? Create One"
+                  ? 'Already have an account? ' 
+                  : "Don't have an account? "
                 }
+              </Text>
+              <Text style={styles.toggleLink}>
+                {isSignUp ? 'Sign In' : 'Create One'}
               </Text>
             </TouchableOpacity>
           </View>
 
+          {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               {isSignUp 
-                ? 'By creating an account, you agree to our terms of service'
-                : 'Contact your administrator if you need help with your credentials'
+                ? 'By creating an account, you agree to our terms'
+                : 'Secure • Reliable • Always Protected'
               }
             </Text>
           </View>
@@ -316,6 +367,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  backgroundGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: height,
+  },
   keyboardView: {
     flex: 1,
   },
@@ -323,121 +381,151 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingVertical: 40,
+    justifyContent: 'center',
+    minHeight: height - 80,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
-  iconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#EBF4FF',
+  logoContainer: {
+    position: 'relative',
+    marginBottom: 24,
+  },
+  logoGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 24,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowColor: '#4facfe',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  sparkle1: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+  },
+  sparkle2: {
+    position: 'absolute',
+    bottom: 5,
+    left: -8,
   },
   title: {
     fontSize: 32,
     fontFamily: 'Inter-Bold',
-    color: '#1F2937',
+    color: '#FFFFFF',
     textAlign: 'center',
     marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   subtitle: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     lineHeight: 24,
   },
-  form: {
+  formCard: {
+    borderRadius: 24,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.15,
+    shadowRadius: 30,
+    elevation: 15,
     marginBottom: 32,
   },
-  inputContainer: {
+  cardGradient: {
+    padding: 32,
+  },
+  inputGroup: {
     marginBottom: 24,
   },
   label: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Inter-SemiBold',
     color: '#374151',
     marginBottom: 8,
   },
-  input: {
-    height: 56,
+  inputContainer: {
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
     borderWidth: 2,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    overflow: 'hidden',
+  },
+  input: {
+    height: 56,
+    paddingHorizontal: 20,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    backgroundColor: '#FFFFFF',
     color: '#1F2937',
   },
   passwordContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: '#F9FAFB',
     borderWidth: 2,
     borderColor: '#E5E7EB',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
   },
   passwordInput: {
     flex: 1,
     height: 56,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     fontSize: 16,
     fontFamily: 'Inter-Regular',
     color: '#1F2937',
   },
-  passwordToggle: {
+  eyeButton: {
     padding: 16,
   },
-  roleSelector: {
+  roleContainer: {
     flexDirection: 'row',
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    padding: 4,
+    gap: 12,
   },
-  roleOption: {
+  roleChip: {
     flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
   },
-  roleOptionSelected: {
-    backgroundColor: '#2563EB',
+  roleChipSelected: {
+    backgroundColor: '#EBF4FF',
+    borderColor: '#3B82F6',
   },
-  roleOptionText: {
+  roleChipText: {
     fontSize: 14,
     fontFamily: 'Inter-Medium',
     color: '#6B7280',
   },
-  roleOptionTextSelected: {
-    color: '#FFFFFF',
+  roleChipTextSelected: {
+    color: '#3B82F6',
   },
   actionButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginTop: 8,
+  },
+  actionButtonDisabled: {
+    opacity: 0.7,
+  },
+  buttonGradient: {
     height: 56,
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    shadowColor: '#2563EB',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  actionButtonDisabled: {
-    opacity: 0.6,
+    gap: 12,
   },
   actionButtonText: {
     fontSize: 16,
@@ -445,28 +533,32 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   toggleSection: {
-    marginBottom: 32,
     alignItems: 'center',
+    marginBottom: 24,
   },
   toggleButton: {
+    flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
   toggleText: {
     fontSize: 14,
-    fontFamily: 'Inter-Medium',
-    color: '#2563EB',
-    textAlign: 'center',
+    fontFamily: 'Inter-Regular',
+    color: 'rgba(255,255,255,0.8)',
+  },
+  toggleLink: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFD700',
   },
   footer: {
     alignItems: 'center',
-    marginTop: 'auto',
   },
   footerText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 18,
   },
 });

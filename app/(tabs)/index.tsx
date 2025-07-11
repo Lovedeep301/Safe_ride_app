@@ -8,16 +8,20 @@ import {
   ScrollView,
   Alert,
   Platform,
-  Modal
+  Modal,
+  Dimensions
 } from 'react-native';
-import { Chrome as Home, MapPin, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Users, MessageCircle, X, Calendar, UserCheck } from 'lucide-react-native';
+import { Chrome as Home, MapPin, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Users, MessageCircle, X, Calendar, UserCheck, Zap, TrendingUp, Shield } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { EmployeeService } from '@/services/EmployeeService';
 import { LocationService } from '@/services/LocationService';
 import EmergencyButton from '@/components/EmergencyButton';
 import RealTimeMap from '@/components/RealTimeMap';
+import { LinearGradient } from 'expo-linear-gradient';
 
 type StatusOption = 'home' | 'leave' | 'absent';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const [user, setUser] = useState(AuthService.getCurrentUser());
@@ -156,104 +160,122 @@ export default function HomeScreen() {
       transparent={false}
     >
       <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setShowStatusModal(false)}>
-            <X size={24} color="#6B7280" />
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>Update Status</Text>
-          <View style={{ width: 24 }} />
-        </View>
-
-        <View style={styles.modalContent}>
-          <View style={styles.statusSection}>
-            <UserCheck size={48} color="#2563EB" />
-            <Text style={styles.statusTitle}>Select Your Current Status</Text>
-            <Text style={styles.statusText}>
-              Choose the option that best describes your current situation.
-            </Text>
+        <LinearGradient
+          colors={['#667eea', '#764ba2']}
+          style={styles.modalGradient}
+        >
+          <View style={styles.modalHeader}>
+            <TouchableOpacity onPress={() => setShowStatusModal(false)}>
+              <X size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            <Text style={styles.modalTitle}>Update Status</Text>
+            <View style={{ width: 24 }} />
           </View>
 
-          <View style={styles.statusOptions}>
-            <TouchableOpacity
-              style={[
-                styles.statusOption,
-                selectedStatus === 'home' && styles.statusOptionSelected,
-                { borderLeftColor: '#10B981' }
-              ]}
-              onPress={() => setSelectedStatus('home')}
-            >
-              <View style={[styles.statusOptionIcon, { backgroundColor: '#ECFDF5' }]}>
-                <CheckCircle size={24} color="#10B981" />
+          <View style={styles.modalContent}>
+            <View style={styles.statusSection}>
+              <View style={styles.statusIconContainer}>
+                <UserCheck size={48} color="#FFFFFF" />
               </View>
-              <View style={styles.statusOptionInfo}>
-                <Text style={styles.statusOptionTitle}>Safely Arrived Home</Text>
-                <Text style={styles.statusOptionDescription}>
-                  Confirm that you have reached home safely
-                </Text>
-              </View>
-              <View style={[
-                styles.radioButton,
-                selectedStatus === 'home' && styles.radioButtonSelected
-              ]} />
-            </TouchableOpacity>
+              <Text style={styles.statusTitle}>Select Your Status</Text>
+              <Text style={styles.statusText}>
+                Choose the option that best describes your current situation.
+              </Text>
+            </View>
+
+            <View style={styles.statusOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.statusOption,
+                  selectedStatus === 'home' && styles.statusOptionSelected,
+                ]}
+                onPress={() => setSelectedStatus('home')}
+              >
+                <LinearGradient
+                  colors={selectedStatus === 'home' ? ['#10B981', '#059669'] : ['#FFFFFF', '#F9FAFB']}
+                  style={styles.statusOptionGradient}
+                >
+                  <View style={[styles.statusOptionIcon, { backgroundColor: selectedStatus === 'home' ? 'rgba(255,255,255,0.2)' : '#ECFDF5' }]}>
+                    <CheckCircle size={24} color={selectedStatus === 'home' ? '#FFFFFF' : '#10B981'} />
+                  </View>
+                  <View style={styles.statusOptionInfo}>
+                    <Text style={[styles.statusOptionTitle, { color: selectedStatus === 'home' ? '#FFFFFF' : '#1F2937' }]}>
+                      Safely Arrived Home
+                    </Text>
+                    <Text style={[styles.statusOptionDescription, { color: selectedStatus === 'home' ? 'rgba(255,255,255,0.8)' : '#6B7280' }]}>
+                      Confirm that you have reached home safely
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.statusOption,
+                  selectedStatus === 'leave' && styles.statusOptionSelected,
+                ]}
+                onPress={() => setSelectedStatus('leave')}
+              >
+                <LinearGradient
+                  colors={selectedStatus === 'leave' ? ['#8B5CF6', '#7C3AED'] : ['#FFFFFF', '#F9FAFB']}
+                  style={styles.statusOptionGradient}
+                >
+                  <View style={[styles.statusOptionIcon, { backgroundColor: selectedStatus === 'leave' ? 'rgba(255,255,255,0.2)' : '#F3E8FF' }]}>
+                    <Calendar size={24} color={selectedStatus === 'leave' ? '#FFFFFF' : '#8B5CF6'} />
+                  </View>
+                  <View style={styles.statusOptionInfo}>
+                    <Text style={[styles.statusOptionTitle, { color: selectedStatus === 'leave' ? '#FFFFFF' : '#1F2937' }]}>
+                      On Leave
+                    </Text>
+                    <Text style={[styles.statusOptionDescription, { color: selectedStatus === 'leave' ? 'rgba(255,255,255,0.8)' : '#6B7280' }]}>
+                      Mark yourself as on leave for today
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.statusOption,
+                  selectedStatus === 'absent' && styles.statusOptionSelected,
+                ]}
+                onPress={() => setSelectedStatus('absent')}
+              >
+                <LinearGradient
+                  colors={selectedStatus === 'absent' ? ['#6B7280', '#4B5563'] : ['#FFFFFF', '#F9FAFB']}
+                  style={styles.statusOptionGradient}
+                >
+                  <View style={[styles.statusOptionIcon, { backgroundColor: selectedStatus === 'absent' ? 'rgba(255,255,255,0.2)' : '#F3F4F6' }]}>
+                    <AlertCircle size={24} color={selectedStatus === 'absent' ? '#FFFFFF' : '#6B7280'} />
+                  </View>
+                  <View style={styles.statusOptionInfo}>
+                    <Text style={[styles.statusOptionTitle, { color: selectedStatus === 'absent' ? '#FFFFFF' : '#1F2937' }]}>
+                      Absent
+                    </Text>
+                    <Text style={[styles.statusOptionDescription, { color: selectedStatus === 'absent' ? 'rgba(255,255,255,0.8)' : '#6B7280' }]}>
+                      Mark yourself as absent for today
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
-              style={[
-                styles.statusOption,
-                selectedStatus === 'leave' && styles.statusOptionSelected,
-                { borderLeftColor: '#8B5CF6' }
-              ]}
-              onPress={() => setSelectedStatus('leave')}
+              style={[styles.confirmStatusButton, isLoading && styles.confirmStatusButtonDisabled]}
+              onPress={handleStatusConfirmation}
+              disabled={isLoading}
             >
-              <View style={[styles.statusOptionIcon, { backgroundColor: '#F3E8FF' }]}>
-                <Calendar size={24} color="#8B5CF6" />
-              </View>
-              <View style={styles.statusOptionInfo}>
-                <Text style={styles.statusOptionTitle}>On Leave</Text>
-                <Text style={styles.statusOptionDescription}>
-                  Mark yourself as on leave for today
+              <LinearGradient
+                colors={['#4facfe', '#00f2fe']}
+                style={styles.confirmButtonGradient}
+              >
+                <Text style={styles.confirmStatusButtonText}>
+                  {isLoading ? 'Updating...' : 'Confirm Status'}
                 </Text>
-              </View>
-              <View style={[
-                styles.radioButton,
-                selectedStatus === 'leave' && styles.radioButtonSelected
-              ]} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.statusOption,
-                selectedStatus === 'absent' && styles.statusOptionSelected,
-                { borderLeftColor: '#6B7280' }
-              ]}
-              onPress={() => setSelectedStatus('absent')}
-            >
-              <View style={[styles.statusOptionIcon, { backgroundColor: '#F3F4F6' }]}>
-                <AlertCircle size={24} color="#6B7280" />
-              </View>
-              <View style={styles.statusOptionInfo}>
-                <Text style={styles.statusOptionTitle}>Absent</Text>
-                <Text style={styles.statusOptionDescription}>
-                  Mark yourself as absent for today
-                </Text>
-              </View>
-              <View style={[
-                styles.radioButton,
-                selectedStatus === 'absent' && styles.radioButtonSelected
-              ]} />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={[styles.confirmStatusButton, isLoading && styles.confirmStatusButtonDisabled]}
-            onPress={handleStatusConfirmation}
-            disabled={isLoading}
-          >
-            <Text style={styles.confirmStatusButtonText}>
-              {isLoading ? 'Updating...' : 'Confirm Status'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </SafeAreaView>
     </Modal>
   );
@@ -269,7 +291,7 @@ export default function HomeScreen() {
           <TouchableOpacity onPress={() => setShowMapModal(false)}>
             <X size={24} color="#6B7280" />
           </TouchableOpacity>
-          <Text style={styles.mapModalTitle}>Real-time Cab Tracking</Text>
+          <Text style={styles.mapModalTitle}>Live Tracking</Text>
           <View style={{ width: 24 }} />
         </View>
         
@@ -282,6 +304,11 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={['#667eea', '#764ba2']}
+        style={styles.headerGradient}
+      />
+      
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.welcomeText}>Welcome back,</Text>
@@ -297,47 +324,61 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.statusCard}>
-          <View style={styles.statusHeader}>
-            <View style={styles.statusIcon}>
-              <StatusIcon size={24} color={getStatusColor(todayStatus?.status || 'pending')} />
+          <LinearGradient
+            colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.9)']}
+            style={styles.statusCardGradient}
+          >
+            <View style={styles.statusHeader}>
+              <View style={[styles.statusIcon, { backgroundColor: `${getStatusColor(todayStatus?.status || 'pending')}20` }]}>
+                <StatusIcon size={24} color={getStatusColor(todayStatus?.status || 'pending')} />
+              </View>
+              <View style={styles.statusInfo}>
+                <Text style={styles.statusTitle}>Today's Status</Text>
+                <Text style={[
+                  styles.statusSubtitle,
+                  { color: getStatusColor(todayStatus?.status || 'pending') }
+                ]}>
+                  {getStatusText(todayStatus?.status || 'pending')}
+                </Text>
+              </View>
+              <View style={styles.statusBadge}>
+                <Text style={styles.statusBadgeText}>
+                  {todayStatus?.status === 'confirmed' ? '✓' : '○'}
+                </Text>
+              </View>
             </View>
-            <View style={styles.statusInfo}>
-              <Text style={styles.statusTitle}>Today's Status</Text>
-              <Text style={[
-                styles.statusSubtitle,
-                { color: getStatusColor(todayStatus?.status || 'pending') }
-              ]}>
-                {getStatusText(todayStatus?.status || 'pending')}
-              </Text>
-            </View>
-          </View>
 
-          {!hasConfirmedArrival && !todayStatus?.isAbsent && !todayStatus?.isOnLeave && (
-            <TouchableOpacity
-              style={[styles.confirmButton, isLoading && styles.confirmButtonDisabled]}
-              onPress={() => setShowStatusModal(true)}
-              disabled={isLoading}
-            >
-              <UserCheck size={20} color="#FFFFFF" />
-              <Text style={styles.confirmButtonText}>
-                Update Status
-              </Text>
-            </TouchableOpacity>
-          )}
+            {!hasConfirmedArrival && !todayStatus?.isAbsent && !todayStatus?.isOnLeave && (
+              <TouchableOpacity
+                style={[styles.confirmButton, isLoading && styles.confirmButtonDisabled]}
+                onPress={() => setShowStatusModal(true)}
+                disabled={isLoading}
+              >
+                <LinearGradient
+                  colors={['#4facfe', '#00f2fe']}
+                  style={styles.confirmButtonGradient}
+                >
+                  <UserCheck size={20} color="#FFFFFF" />
+                  <Text style={styles.confirmButtonText}>Update Status</Text>
+                  <Zap size={16} color="#FFFFFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            )}
 
-          {todayStatus?.isAbsent && (
-            <View style={styles.statusBanner}>
-              <AlertCircle size={20} color="#6B7280" />
-              <Text style={styles.statusBannerText}>You are marked as absent today</Text>
-            </View>
-          )}
+            {todayStatus?.isAbsent && (
+              <View style={styles.statusBanner}>
+                <AlertCircle size={20} color="#6B7280" />
+                <Text style={styles.statusBannerText}>You are marked as absent today</Text>
+              </View>
+            )}
 
-          {todayStatus?.isOnLeave && (
-            <View style={[styles.statusBanner, { backgroundColor: '#F3E8FF' }]}>
-              <Calendar size={20} color="#8B5CF6" />
-              <Text style={[styles.statusBannerText, { color: '#8B5CF6' }]}>You are on leave today</Text>
-            </View>
-          )}
+            {todayStatus?.isOnLeave && (
+              <View style={[styles.statusBanner, { backgroundColor: '#F3E8FF' }]}>
+                <Calendar size={20} color="#8B5CF6" />
+                <Text style={[styles.statusBannerText, { color: '#8B5CF6' }]}>You are on leave today</Text>
+              </View>
+            )}
+          </LinearGradient>
         </View>
 
         <View style={styles.quickActions}>
@@ -345,30 +386,45 @@ export default function HomeScreen() {
           
           <View style={styles.actionsGrid}>
             <TouchableOpacity style={styles.actionCard}>
-              <View style={styles.actionIcon}>
-                <Users size={24} color="#2563EB" />
-              </View>
-              <Text style={styles.actionTitle}>My Groups</Text>
-              <Text style={styles.actionSubtitle}>View cab groups</Text>
+              <LinearGradient
+                colors={['#667eea', '#764ba2']}
+                style={styles.actionGradient}
+              >
+                <View style={styles.actionIcon}>
+                  <Users size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.actionTitle}>My Groups</Text>
+                <Text style={styles.actionSubtitle}>View cab groups</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.actionCard}>
-              <View style={styles.actionIcon}>
-                <MessageCircle size={24} color="#2563EB" />
-              </View>
-              <Text style={styles.actionTitle}>Messages</Text>
-              <Text style={styles.actionSubtitle}>Team chat</Text>
+              <LinearGradient
+                colors={['#4facfe', '#00f2fe']}
+                style={styles.actionGradient}
+              >
+                <View style={styles.actionIcon}>
+                  <MessageCircle size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.actionTitle}>Messages</Text>
+                <Text style={styles.actionSubtitle}>Team chat</Text>
+              </LinearGradient>
             </TouchableOpacity>
 
             <TouchableOpacity 
               style={styles.actionCard}
               onPress={() => setShowMapModal(true)}
             >
-              <View style={styles.actionIcon}>
-                <MapPin size={24} color="#059669" />
-              </View>
-              <Text style={styles.actionTitle}>Live Map</Text>
-              <Text style={styles.actionSubtitle}>Track cab location</Text>
+              <LinearGradient
+                colors={['#11998e', '#38ef7d']}
+                style={styles.actionGradient}
+              >
+                <View style={styles.actionIcon}>
+                  <MapPin size={24} color="#FFFFFF" />
+                </View>
+                <Text style={styles.actionTitle}>Live Map</Text>
+                <Text style={styles.actionSubtitle}>Track location</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -377,20 +433,25 @@ export default function HomeScreen() {
           <View style={styles.arrivalInfo}>
             <Text style={styles.sectionTitle}>Status Details</Text>
             <View style={styles.arrivalCard}>
-              <View style={styles.arrivalRow}>
-                <Clock size={16} color="#6B7280" />
-                <Text style={styles.arrivalText}>
-                  Updated at {new Date(todayStatus.arrivalTime).toLocaleTimeString()}
-                </Text>
-              </View>
-              {todayStatus.location && (
+              <LinearGradient
+                colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0.9)']}
+                style={styles.arrivalCardGradient}
+              >
                 <View style={styles.arrivalRow}>
-                  <MapPin size={16} color="#6B7280" />
+                  <Clock size={16} color="#6B7280" />
                   <Text style={styles.arrivalText}>
-                    Location: {todayStatus.location.address || 'Current Location'}
+                    Updated at {new Date(todayStatus.arrivalTime).toLocaleTimeString()}
                   </Text>
                 </View>
-              )}
+                {todayStatus.location && (
+                  <View style={styles.arrivalRow}>
+                    <MapPin size={16} color="#6B7280" />
+                    <Text style={styles.arrivalText}>
+                      Location: {todayStatus.location.address || 'Current Location'}
+                    </Text>
+                  </View>
+                )}
+              </LinearGradient>
             </View>
           </View>
         )}
@@ -413,42 +474,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F8FAFC',
   },
+  headerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+  },
   scrollView: {
     flex: 1,
   },
   header: {
     paddingHorizontal: 24,
-    paddingTop: 20,
+    paddingTop: 60,
     paddingBottom: 24,
   },
   welcomeText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.8)',
   },
   nameText: {
     fontSize: 28,
     fontFamily: 'Inter-Bold',
-    color: '#1F2937',
+    color: '#FFFFFF',
     marginTop: 4,
   },
   dateText: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#9CA3AF',
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 4,
   },
   statusCard: {
     marginHorizontal: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 24,
+    borderRadius: 20,
     marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    overflow: 'hidden',
+  },
+  statusCardGradient: {
+    padding: 24,
   },
   statusHeader: {
     flexDirection: 'row',
@@ -459,7 +529,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 16,
@@ -477,17 +546,32 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     marginTop: 4,
   },
+  statusBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusBadgeText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
+    color: '#6B7280',
+  },
   confirmButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  confirmButtonDisabled: {
+    opacity: 0.6,
+  },
+  confirmButtonGradient: {
+    height: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-  },
-  confirmButtonDisabled: {
-    opacity: 0.6,
   },
   confirmButtonText: {
     fontSize: 16,
@@ -524,52 +608,52 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    minWidth: '30%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    minWidth: (width - 72) / 3,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  actionGradient: {
     padding: 20,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    minHeight: 120,
+    justifyContent: 'center',
   },
   actionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#EBF4FF',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginBottom: 12,
   },
   actionTitle: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
+    color: '#FFFFFF',
     textAlign: 'center',
+    marginBottom: 4,
   },
   actionSubtitle: {
     fontSize: 12,
     fontFamily: 'Inter-Regular',
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    marginTop: 4,
   },
   arrivalInfo: {
     paddingHorizontal: 24,
     marginBottom: 24,
   },
   arrivalCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  arrivalCardGradient: {
+    padding: 16,
   },
   arrivalRow: {
     flexDirection: 'row',
@@ -589,7 +673,9 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+  },
+  modalGradient: {
+    flex: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -597,14 +683,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    paddingTop: 60,
   },
   modalTitle: {
     fontSize: 18,
     fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
+    color: '#FFFFFF',
   },
   modalContent: {
     flex: 1,
@@ -615,41 +699,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  statusIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
   statusTitle: {
     fontSize: 24,
     fontFamily: 'Inter-Bold',
-    color: '#1F2937',
-    marginTop: 16,
+    color: '#FFFFFF',
     marginBottom: 8,
   },
   statusText: {
     fontSize: 16,
     fontFamily: 'Inter-Regular',
-    color: '#6B7280',
+    color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
     lineHeight: 24,
   },
   statusOptions: {
     marginBottom: 32,
+    gap: 16,
   },
   statusOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
+    borderRadius: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   statusOptionSelected: {
-    backgroundColor: '#F8FAFC',
-    borderWidth: 2,
-    borderColor: '#2563EB',
+    transform: [{ scale: 1.02 }],
+  },
+  statusOptionGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
   },
   statusOptionIcon: {
     width: 48,
@@ -665,35 +756,23 @@ const styles = StyleSheet.create({
   statusOptionTitle: {
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
-    color: '#1F2937',
   },
   statusOptionDescription: {
     fontSize: 14,
     fontFamily: 'Inter-Regular',
-    color: '#6B7280',
     marginTop: 2,
   },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    backgroundColor: '#FFFFFF',
-  },
-  radioButtonSelected: {
-    borderColor: '#2563EB',
-    backgroundColor: '#2563EB',
-  },
   confirmStatusButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   confirmStatusButtonDisabled: {
     opacity: 0.6,
+  },
+  confirmButtonGradient: {
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   confirmStatusButtonText: {
     fontSize: 16,
