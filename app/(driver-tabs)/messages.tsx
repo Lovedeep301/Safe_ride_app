@@ -259,13 +259,9 @@ export default function DriverMessages() {
   const renderChatScreen = () => (
     <SafeAreaView style={styles.container}>
       <View style={styles.chatHeader}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => setCurrentScreen('conversations')}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('conversations')}>
           <ArrowLeft size={24} color="#059669" />
         </TouchableOpacity>
-        
         <View style={styles.chatHeaderContent}>
           <Text style={styles.chatHeaderTitle} numberOfLines={1}>
             {selectedConversation?.name}
@@ -276,7 +272,6 @@ export default function DriverMessages() {
             </Text>
           )}
         </View>
-        
         <View style={styles.chatHeaderIcon}>
           {selectedConversation?.type === 'emergency' ? (
             <AlertTriangle size={24} color="#DC2626" />
@@ -287,11 +282,7 @@ export default function DriverMessages() {
           )}
         </View>
       </View>
-      
-      <KeyboardAvoidingView 
-        style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <KeyboardAvoidingView style={styles.chatContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}
@@ -300,7 +291,6 @@ export default function DriverMessages() {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         />
-        
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}

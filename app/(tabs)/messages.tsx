@@ -269,13 +269,9 @@ export default function MessagesScreen() {
   const renderChatScreen = () => (
     <SafeAreaView style={styles.container}>
       <View style={styles.chatHeader}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => setCurrentScreen('conversations')}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('conversations')}>
           <ArrowLeft size={24} color="#2563EB" />
         </TouchableOpacity>
-        
         <View style={styles.chatHeaderContent}>
           <Text style={styles.chatHeaderTitle} numberOfLines={1}>
             {selectedConversation?.name}
@@ -286,7 +282,6 @@ export default function MessagesScreen() {
             </Text>
           )}
         </View>
-        
         <View style={styles.chatHeaderIcon}>
           {selectedConversation?.type === 'group' ? (
             <Users size={24} color="#2563EB" />
@@ -295,11 +290,7 @@ export default function MessagesScreen() {
           )}
         </View>
       </View>
-      
-      <KeyboardAvoidingView 
-        style={styles.chatContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <KeyboardAvoidingView style={styles.chatContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList
           data={messages}
           keyExtractor={(item) => item.id}
@@ -308,7 +299,6 @@ export default function MessagesScreen() {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         />
-        
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
