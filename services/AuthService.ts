@@ -300,6 +300,43 @@ class AuthServiceClass {
 
   async login(uniqueId: string, password?: string): Promise<boolean> {
     try {
+    // First try Firebase authentication
+    try {
+      const { FirebaseAuthService } = await import('./FirebaseAuthService');
+      const firebaseSuccess = await FirebaseAuthService.signInWithUniqueId(uniqueId, password || '');
+      if (firebaseSuccess) {
+        const firebaseUser = FirebaseAuthService.getCurrentUser();
+        if (firebaseUser) {
+          // Convert Firebase user to local user format
+          this.currentUser = {
+            id: firebaseUser.id,
+            name: firebaseUser.name,
+            uniqueId: firebaseUser.uniqueId,
+            role: firebaseUser.role,
+            email: firebaseUser.email,
+            phone: firebaseUser.phone,
+            licenseNumber: firebaseUser.licenseNumber,
+            homeLocation: firebaseUser.homeLocation,
+            vehicleInfo: firebaseUser.vehicleInfo,
+            emergencyContact: firebaseUser.emergencyContact,
+            isActive: firebaseUser.isActive,
+            lastSeen: firebaseUser.lastSeen,
+            currentLocation: firebaseUser.currentLocation
+          };
+          
+          // Store in local storage
+          const storage = this.getStorage();
+          if (storage) {
+            storage.setItem('currentUser', JSON.stringify(this.currentUser));
+          }
+          return true;
+        }
+      }
+    } catch (firebaseError) {
+      console.log('Firebase auth failed, falling back to mock auth:', firebaseError);
+    }
+    
+    // Fallback to mock authentication
     const user = this.users.find(u => u.uniqueId.toLowerCase() === uniqueId.toLowerCase());
     
     if (user && user.isActive) {
