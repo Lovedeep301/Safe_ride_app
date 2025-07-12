@@ -11,28 +11,20 @@ import {
   Platform,
   Alert
 } from 'react-native';
-import { 
-  MessageCircle, 
-  Send, 
-  Users, 
-  Clock,
-  ArrowLeft
-} from 'lucide-react-native';
+import { MessageCircle, Send, Users, Clock, ArrowLeft, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { MessageService, Conversation, Message } from '@/services/MessageService';
 import { FirebaseMessageService } from '@/services/FirebaseMessageService';
 
-type Screen = 'conversations' | 'chat';
-
-export default function MessagesScreen() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('conversations');
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+export default function DriverMessages() {
+  const [currentScreen, setCurrentScreen] = useState('conversations');
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [messageSubscription, setMessageSubscription] = useState<(() => void) | null>(null);
-  const [conversationSubscription, setConversationSubscription] = useState<(() => void) | null>(null);
+  const [messageSubscription, setMessageSubscription] = useState(null);
+  const [conversationSubscription, setConversationSubscription] = useState(null);
   const user = AuthService.getCurrentUser();
 
   useEffect(() => {
@@ -40,7 +32,6 @@ export default function MessagesScreen() {
   }, []);
 
   useEffect(() => {
-    // Set up real-time conversation updates
     if (user) {
       try {
         const unsubscribe = FirebaseMessageService.subscribeToConversations(user.id, (firebaseConversations) => {
@@ -62,24 +53,22 @@ export default function MessagesScreen() {
 
   const loadConversations = async () => {
     try {
-      const convs = await MessageService.getConversations();
+      const convs = await MessageService.getDriverConversations();
       setConversations(convs);
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
   };
 
-  const openConversation = async (conversation: Conversation) => {
+  const openConversation = async (conversation) => {
     setSelectedConversation(conversation);
     setCurrentScreen('chat');
-    
-    // Clean up previous message subscription
+
     if (messageSubscription) {
       messageSubscription();
       setMessageSubscription(null);
     }
-    
-    // Set up real-time message updates for this conversation
+
     try {
       const unsubscribe = FirebaseMessageService.subscribeToMessages(conversation.id, (firebaseMessages) => {
         const convertedMessages = firebaseMessages.map(msg => ({
@@ -92,21 +81,19 @@ export default function MessagesScreen() {
     } catch (error) {
       console.log('Firebase real-time messages not available, using manual refresh');
     }
-    
+
     try {
       const msgs = await MessageService.getMessages(conversation.id);
       setMessages(msgs);
-      
       if (user) {
         await MessageService.markAsRead(conversation.id, user.id);
-        loadConversations(); // Refresh to update unread count
+        loadConversations();
       }
     } catch (error) {
       console.error('Error loading messages:', error);
     }
   };
 
-  // Clean up subscriptions when component unmounts or screen changes
   useEffect(() => {
     return () => {
       messageSubscription?.();
@@ -125,14 +112,12 @@ export default function MessagesScreen() {
         user.id,
         user.name
       );
-      
-      // Only update messages if not using real-time subscription
+
       if (!messageSubscription) {
         setMessages(prev => [...prev, message]);
       }
       setNewMessage('');
-      
-      // Only refresh conversations if not using real-time subscription
+
       if (!conversationSubscription) {
         loadConversations();
       }
@@ -148,88 +133,76 @@ export default function MessagesScreen() {
     }
   };
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const hours = diff / (1000 * 60 * 60);
-    
+
     if (hours < 24) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
       });
     }
   };
 
-  const renderConversationItem = ({ item }: { item: Conversation }) => (
-    <TouchableOpacity 
-      style={styles.conversationItem}
-      onPress={() => openConversation(item)}
-    >
+  const renderConversationItem = ({ item }) => (
+    <TouchableOpacity style={styles.conversationItem} onPress={() => openConversation(item)}>
       <View style={styles.conversationIcon}>
-        {item.type === 'group' ? (
-          <Users size={24} color="#2563EB" />
+        {item.type === 'emergency' ? (
+          <AlertTriangle size={24} color="#DC2626" />
+        ) : item.type === 'group' ? (
+          <Users size={24} color="#059669" />
         ) : (
-          <MessageCircle size={24} color="#2563EB" />
+          <MessageCircle size={24} color="#059669" />
         )}
       </View>
-      
+
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={styles.conversationName} numberOfLines={1}>
-            {item.name}
-          </Text>
+          <Text style={styles.conversationName} numberOfLines={1}>{item.name}</Text>
           {item.lastMessage && (
-            <Text style={styles.conversationTime}>
-              {formatTime(item.lastMessage.timestamp)}
-            </Text>
+            <Text style={styles.conversationTime}>{formatTime(item.lastMessage.timestamp)}</Text>
           )}
         </View>
-        
+
         {item.lastMessage && (
           <Text style={styles.conversationPreview} numberOfLines={1}>
             {item.lastMessage.senderName}: {item.lastMessage.content}
           </Text>
         )}
+
+        {item.type === 'emergency' && (
+          <Text style={styles.emergencyLabel}>Emergency</Text>
+        )}
       </View>
-      
+
       {item.unreadCount > 0 && (
         <View style={styles.unreadBadge}>
-          <Text style={styles.unreadCount}>
-            {item.unreadCount > 99 ? '99+' : item.unreadCount}
-          </Text>
+          <Text style={styles.unreadCount}>{item.unreadCount > 99 ? '99+' : item.unreadCount}</Text>
         </View>
       )}
     </TouchableOpacity>
   );
 
-  const renderMessage = ({ item }: { item: Message }) => {
+  const renderMessage = ({ item }) => {
     const isOwnMessage = item.senderId === user?.id;
-    
+
     return (
-      <View style={[
-        styles.messageContainer,
-        isOwnMessage ? styles.ownMessage : styles.otherMessage
-      ]}>
+      <View style={[styles.messageContainer, isOwnMessage ? styles.ownMessage : styles.otherMessage]}>
         {!isOwnMessage && selectedConversation?.type === 'group' && (
           <Text style={styles.senderName}>{item.senderName}</Text>
         )}
-        <Text style={[
-          styles.messageText,
-          isOwnMessage ? styles.ownMessageText : styles.otherMessageText
-        ]}>
+        <Text style={[styles.messageText, isOwnMessage ? styles.ownMessageText : styles.otherMessageText]}>
           {item.content}
         </Text>
-        <Text style={[
-          styles.messageTime,
-          isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime
-        ]}>
+        <Text style={[styles.messageTime, isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime]}>
           {formatTime(item.timestamp)}
         </Text>
       </View>
@@ -244,7 +217,7 @@ export default function MessagesScreen() {
           {conversations.length > 0 ? `${conversations.length} conversations` : 'No conversations yet'}
         </Text>
       </View>
-      
+
       {conversations.length === 0 ? (
         <View style={styles.emptyState}>
           <MessageCircle size={48} color="#9CA3AF" />
@@ -254,14 +227,14 @@ export default function MessagesScreen() {
           </Text>
         </View>
       ) : (
-      <FlatList
-        data={conversations}
-        keyExtractor={(item) => item.id}
-        renderItem={renderConversationItem}
-        style={styles.conversationsList}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.conversationsContent}
-      />
+        <FlatList
+          data={conversations}
+          keyExtractor={(item) => item.id}
+          renderItem={renderConversationItem}
+          style={styles.conversationsList}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.conversationsContent}
+        />
       )}
     </SafeAreaView>
   );
@@ -272,16 +245,14 @@ export default function MessagesScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('conversations')}>
           <ArrowLeft size={24} color="#2563EB" />
         </TouchableOpacity>
+
         <View style={styles.chatHeaderContent}>
-          <Text style={styles.chatHeaderTitle} numberOfLines={1}>
-            {selectedConversation?.name}
-          </Text>
+          <Text style={styles.chatHeaderTitle} numberOfLines={1}>{selectedConversation?.name}</Text>
           {selectedConversation?.type === 'group' && (
-            <Text style={styles.chatHeaderSubtitle}>
-              {selectedConversation.participants.length} members
-            </Text>
+            <Text style={styles.chatHeaderSubtitle}>{selectedConversation.participants.length} members</Text>
           )}
         </View>
+
         <View style={styles.chatHeaderIcon}>
           {selectedConversation?.type === 'group' ? (
             <Users size={24} color="#2563EB" />
@@ -290,6 +261,7 @@ export default function MessagesScreen() {
           )}
         </View>
       </View>
+
       <KeyboardAvoidingView style={styles.chatContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <FlatList
           data={messages}
@@ -299,6 +271,7 @@ export default function MessagesScreen() {
           contentContainerStyle={styles.messagesContent}
           showsVerticalScrollIndicator={false}
         />
+
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.textInput}
@@ -323,6 +296,11 @@ export default function MessagesScreen() {
 
   return currentScreen === 'conversations' ? renderConversationsScreen() : renderChatScreen();
 }
+
+const styles = StyleSheet.create({
+  // your styles remain unchanged
+});
+
 
 const styles = StyleSheet.create({
   container: {
