@@ -239,6 +239,7 @@ export default function HomeScreen() {
               )}
             </View>
           </View>
+        )}
         <EmergencyButton style={styles.emergencyButton} />
       </ScrollView>
 
