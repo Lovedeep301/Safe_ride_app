@@ -241,9 +241,10 @@ export default function HomeScreen() {
           </View>
         )}
 
+        </ScrollView>
       <EmergencyButton style={styles.emergencyButton} />
-      </>
     </SafeAreaView>
+
   );
 }
 
