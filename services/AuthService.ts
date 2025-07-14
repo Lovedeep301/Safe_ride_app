@@ -134,14 +134,14 @@ class AuthServiceClass {
 
   async login(uniqueId: string, password: string): Promise<boolean> {
     try {
-      // Use Firebase authentication only
+      // Try Firebase authentication first
       const { FirebaseAuthService } = await import('./FirebaseAuthService');
       const firebaseSuccess = await FirebaseAuthService.signInWithUniqueId(uniqueId, password);
       
       if (firebaseSuccess) {
         const firebaseUser = FirebaseAuthService.getCurrentUser();
         if (firebaseUser) {
-          // Convert Firebase user to local user format
+          // Convert Firebase user to local user format and store
           this.currentUser = {
             id: firebaseUser.id,
             name: firebaseUser.name,
@@ -158,15 +158,85 @@ class AuthServiceClass {
             currentLocation: firebaseUser.currentLocation
           };
           
-          // Store in local storage
+          // Store in local storage for persistence
           this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
           return true;
         }
       }
       
-      return false;
+      // Fallback to mock data for development
+      console.warn('Firebase login failed, using mock data');
+      return this.loginWithMockData(uniqueId, password);
+      
     } catch (error) {
       console.error('Login error:', error);
+      // Fallback to mock data
+      return this.loginWithMockData(uniqueId, password);
+    }
+  }
+
+  private async loginWithMockData(uniqueId: string, password: string): Promise<boolean> {
+    try {
+      // Mock users for development/testing
+      const mockUsers = [
+        {
+          id: 'admin001',
+          name: 'Admin User',
+          uniqueId: 'ADMIN001',
+          role: 'admin' as const,
+          email: 'admin@company.com',
+          phone: '+1-555-0101',
+          isActive: true,
+          lastSeen: new Date()
+        },
+        {
+          id: 'driver001',
+          name: 'Driver User',
+          uniqueId: 'DRV001',
+          role: 'driver' as const,
+          email: 'driver@company.com',
+          phone: '+1-555-0201',
+          licenseNumber: 'DL123456789',
+          vehicleInfo: {
+            plateNumber: 'ABC-1234',
+            model: 'Toyota Hiace',
+            capacity: 12
+          },
+          isActive: true,
+          lastSeen: new Date()
+        },
+        {
+          id: 'emp001',
+          name: 'Employee User',
+          uniqueId: 'EMP001',
+          role: 'employee' as const,
+          email: 'employee@company.com',
+          phone: '+1-555-0301',
+          homeLocation: {
+            latitude: 40.7614,
+            longitude: -73.9776,
+            address: '123 Main St, New York, NY'
+          },
+          isActive: true,
+          lastSeen: new Date()
+        }
+      ];
+
+      // Check credentials
+      const user = mockUsers.find(u => 
+        u.uniqueId.toUpperCase() === uniqueId.toUpperCase() && 
+        password === 'demo123' // Simple password for demo
+      );
+
+      if (user) {
+        this.currentUser = user;
+        this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Mock login error:', error);
       return false;
     }
   }

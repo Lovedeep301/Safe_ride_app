@@ -606,4 +606,41 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+  roleSelectionContainer: {
+    marginBottom: 24,
+  },
+  roleSelectionTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  roleButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  roleButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  roleButtonSelected: {
+    backgroundColor: '#EBF4FF',
+    borderColor: '#3B82F6',
+  },
+  roleButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
+    color: '#6B7280',
+  },
+  roleButtonTextSelected: {
+    color: '#3B82F6',
+    fontFamily: 'Inter-SemiBold',
+  },
 });
