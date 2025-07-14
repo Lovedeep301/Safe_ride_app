@@ -298,11 +298,6 @@ export default function DriverMessages() {
 }
 
 const styles = StyleSheet.create({
-  // your styles remain unchanged
-});
-
-
-const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
