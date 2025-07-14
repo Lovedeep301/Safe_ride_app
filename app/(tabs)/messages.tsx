@@ -11,76 +11,35 @@ import {
   Platform,
   Alert
 } from 'react-native';
-import { MessageCircle, Send, Users, Clock, ArrowLeft, TriangleAlert as AlertTriangle } from 'lucide-react-native';
+import { MessageCircle, Send, Users, Clock, ArrowLeft, AlertTriangle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { MessageService, Conversation, Message } from '@/services/MessageService';
-import { FirebaseMessageService } from '@/services/FirebaseMessageService';
 
-export default function DriverMessages() {
+export default function MessagesScreen() {
   const [currentScreen, setCurrentScreen] = useState('conversations');
-  const [conversations, setConversations] = useState([]);
-  const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [messageSubscription, setMessageSubscription] = useState(null);
-  const [conversationSubscription, setConversationSubscription] = useState(null);
   const user = AuthService.getCurrentUser();
 
   useEffect(() => {
     loadConversations();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      try {
-        const unsubscribe = FirebaseMessageService.subscribeToConversations(user.id, (firebaseConversations) => {
-          const convertedConversations = firebaseConversations.map(conv => ({
-            ...conv,
-            lastMessage: conv.lastMessage ? {
-              ...conv.lastMessage,
-              timestamp: conv.lastMessage.timestamp?.toDate ? conv.lastMessage.timestamp.toDate() : new Date()
-            } : undefined
-          }));
-          setConversations(convertedConversations);
-        });
-        setConversationSubscription(() => unsubscribe);
-      } catch (error) {
-        console.log('Firebase real-time updates not available, using polling');
-      }
-    }
-  }, [user]);
-
   const loadConversations = async () => {
     try {
-      const convs = await MessageService.getDriverConversations();
+      const convs = await MessageService.getConversations();
       setConversations(convs);
     } catch (error) {
       console.error('Error loading conversations:', error);
     }
   };
 
-  const openConversation = async (conversation) => {
+  const openConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation);
     setCurrentScreen('chat');
-
-    if (messageSubscription) {
-      messageSubscription();
-      setMessageSubscription(null);
-    }
-
-    try {
-      const unsubscribe = FirebaseMessageService.subscribeToMessages(conversation.id, (firebaseMessages) => {
-        const convertedMessages = firebaseMessages.map(msg => ({
-          ...msg,
-          timestamp: msg.timestamp?.toDate ? msg.timestamp.toDate() : new Date()
-        }));
-        setMessages(convertedMessages);
-      });
-      setMessageSubscription(() => unsubscribe);
-    } catch (error) {
-      console.log('Firebase real-time messages not available, using manual refresh');
-    }
 
     try {
       const msgs = await MessageService.getMessages(conversation.id);
@@ -94,13 +53,6 @@ export default function DriverMessages() {
     }
   };
 
-  useEffect(() => {
-    return () => {
-      messageSubscription?.();
-      conversationSubscription?.();
-    };
-  }, [messageSubscription, conversationSubscription]);
-
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !user) return;
 
@@ -113,14 +65,9 @@ export default function DriverMessages() {
         user.name
       );
 
-      if (!messageSubscription) {
-        setMessages(prev => [...prev, message]);
-      }
+      setMessages(prev => [...prev, message]);
       setNewMessage('');
-
-      if (!conversationSubscription) {
-        loadConversations();
-      }
+      loadConversations();
     } catch (error) {
       console.error('Error sending message:', error);
       if (Platform.OS === 'web') {
@@ -133,7 +80,7 @@ export default function DriverMessages() {
     }
   };
 
-  const formatTime = (date) => {
+  const formatTime = (date: Date) => {
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const hours = diff / (1000 * 60 * 60);
@@ -152,15 +99,15 @@ export default function DriverMessages() {
     }
   };
 
-  const renderConversationItem = ({ item }) => (
+  const renderConversationItem = ({ item }: { item: Conversation }) => (
     <TouchableOpacity style={styles.conversationItem} onPress={() => openConversation(item)}>
       <View style={styles.conversationIcon}>
         {item.type === 'emergency' ? (
           <AlertTriangle size={24} color="#DC2626" />
         ) : item.type === 'group' ? (
-          <Users size={24} color="#059669" />
+          <Users size={24} color="#2563EB" />
         ) : (
-          <MessageCircle size={24} color="#059669" />
+          <MessageCircle size={24} color="#2563EB" />
         )}
       </View>
 
@@ -177,10 +124,6 @@ export default function DriverMessages() {
             {item.lastMessage.senderName}: {item.lastMessage.content}
           </Text>
         )}
-
-        {item.type === 'emergency' && (
-          <Text style={styles.emergencyLabel}>Emergency</Text>
-        )}
       </View>
 
       {item.unreadCount > 0 && (
@@ -191,7 +134,7 @@ export default function DriverMessages() {
     </TouchableOpacity>
   );
 
-  const renderMessage = ({ item }) => {
+  const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?.id;
 
     return (
@@ -199,9 +142,11 @@ export default function DriverMessages() {
         {!isOwnMessage && selectedConversation?.type === 'group' && (
           <Text style={styles.senderName}>{item.senderName}</Text>
         )}
-        <Text style={[styles.messageText, isOwnMessage ? styles.ownMessageText : styles.otherMessageText]}>
-          {item.content}
-        </Text>
+        <View style={[styles.messageBubble, isOwnMessage ? styles.ownMessageBubble : styles.otherMessageBubble]}>
+          <Text style={[styles.messageText, isOwnMessage ? styles.ownMessageText : styles.otherMessageText]}>
+            {item.content}
+          </Text>
+        </View>
         <Text style={[styles.messageTime, isOwnMessage ? styles.ownMessageTime : styles.otherMessageTime]}>
           {formatTime(item.timestamp)}
         </Text>
@@ -209,7 +154,55 @@ export default function DriverMessages() {
     );
   };
 
-  const renderConversationsScreen = () => (
+  if (currentScreen === 'chat' && selectedConversation) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.chatHeader}>
+          <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('conversations')}>
+            <ArrowLeft size={24} color="#2563EB" />
+          </TouchableOpacity>
+          <View style={styles.chatHeaderContent}>
+            <Text style={styles.chatHeaderTitle} numberOfLines={1}>{selectedConversation.name}</Text>
+            {selectedConversation.type === 'group' && (
+              <Text style={styles.chatHeaderSubtitle}>{selectedConversation.participants.length} members</Text>
+            )}
+          </View>
+        </View>
+
+        <KeyboardAvoidingView style={styles.chatContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <FlatList
+            data={messages}
+            keyExtractor={(item) => item.id}
+            renderItem={renderMessage}
+            style={styles.messagesList}
+            contentContainerStyle={styles.messagesContent}
+            showsVerticalScrollIndicator={false}
+          />
+
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.textInput}
+              value={newMessage}
+              onChangeText={setNewMessage}
+              placeholder="Type a message..."
+              placeholderTextColor="#9CA3AF"
+              multiline
+              maxLength={1000}
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, (!newMessage.trim() || isLoading) && styles.sendButtonDisabled]}
+              onPress={sendMessage}
+              disabled={!newMessage.trim() || isLoading}
+            >
+              <Send size={20} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
+  return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Messages</Text>
@@ -238,63 +231,6 @@ export default function DriverMessages() {
       )}
     </SafeAreaView>
   );
-
-  const renderChatScreen = () => (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.chatHeader}>
-        <TouchableOpacity style={styles.backButton} onPress={() => setCurrentScreen('conversations')}>
-          <ArrowLeft size={24} color="#2563EB" />
-        </TouchableOpacity>
-
-        <View style={styles.chatHeaderContent}>
-          <Text style={styles.chatHeaderTitle} numberOfLines={1}>{selectedConversation?.name}</Text>
-          {selectedConversation?.type === 'group' && (
-            <Text style={styles.chatHeaderSubtitle}>{selectedConversation.participants.length} members</Text>
-          )}
-        </View>
-
-        <View style={styles.chatHeaderIcon}>
-          {selectedConversation?.type === 'group' ? (
-            <Users size={24} color="#2563EB" />
-          ) : (
-            <MessageCircle size={24} color="#2563EB" />
-          )}
-        </View>
-      </View>
-
-      <KeyboardAvoidingView style={styles.chatContainer} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          style={styles.messagesList}
-          contentContainerStyle={styles.messagesContent}
-          showsVerticalScrollIndicator={false}
-        />
-
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            value={newMessage}
-            onChangeText={setNewMessage}
-            placeholder="Type a message..."
-            placeholderTextColor="#9CA3AF"
-            multiline
-            maxLength={1000}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!newMessage.trim() || isLoading) && styles.sendButtonDisabled]}
-            onPress={sendMessage}
-            disabled={!newMessage.trim() || isLoading}
-          >
-            <Send size={20} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
-  );
-
-  return currentScreen === 'conversations' ? renderConversationsScreen() : renderChatScreen();
 }
 
 const styles = StyleSheet.create({
@@ -305,10 +241,13 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 16,
+    paddingBottom: 24,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#1F2937',
   },
@@ -343,6 +282,7 @@ const styles = StyleSheet.create({
   },
   conversationsContent: {
     paddingHorizontal: 24,
+    paddingTop: 16,
   },
   conversationItem: {
     flexDirection: 'row',
@@ -433,9 +373,6 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 2,
   },
-  chatHeaderIcon: {
-    marginLeft: 16,
-  },
   chatContainer: {
     flex: 1,
   },
@@ -462,20 +399,31 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginBottom: 4,
   },
-  messageText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    lineHeight: 22,
+  messageBubble: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 16,
   },
-  ownMessageText: {
+  ownMessageBubble: {
     backgroundColor: '#2563EB',
+  },
+  otherMessageBubble: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  messageText: {
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+    lineHeight: 22,
+  },
+  ownMessageText: {
     color: '#FFFFFF',
   },
   otherMessageText: {
-    backgroundColor: '#FFFFFF',
     color: '#1F2937',
   },
   messageTime: {
