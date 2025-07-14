@@ -307,7 +307,6 @@ export default function AuthScreen() {
                 <Text style={styles.errorText}>{error}</Text>
               )}
 
-              <>
               {error && error.includes('npm run setup-firebase-users') && (
                 <View style={styles.setupHint}>
                   <Text style={styles.setupHintText}>
@@ -319,7 +318,6 @@ export default function AuthScreen() {
                   </Text>
                 </View>
               )}
-              </>
 
               {/* Action Button */}
               <TouchableOpacity
