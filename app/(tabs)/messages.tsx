@@ -11,7 +11,7 @@ import {
   Platform,
   Alert
 } from 'react-native';
-import { MessageCircle, Send, Users, Clock, ArrowLeft, AlertTriangle } from 'lucide-react-native';
+import { MessageCircle, Send, Users, Clock, ArrowLeft, TriangleAlert as AlertTriangle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { MessageService, Conversation, Message } from '@/services/MessageService';
 

@@ -9,7 +9,7 @@ import {
   Alert,
   Platform
 } from 'react-native';
-import { Home, MapPin, Clock, CheckCircle, AlertCircle, Users, MessageCircle, Settings } from 'lucide-react-native';
+import { Chrome as Home, MapPin, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Users, MessageCircle, Settings } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { EmployeeService } from '@/services/EmployeeService';
 import { LocationService } from '@/services/LocationService';

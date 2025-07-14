@@ -8,7 +8,7 @@ import {
   ScrollView,
   FlatList
 } from 'react-native';
-import { Users, MapPin, Clock, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react-native';
+import { Users, MapPin, Clock, CircleCheck as CheckCircle, CircleAlert as AlertCircle, ArrowRight } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { GroupService, Group, GroupMember } from '@/services/GroupService';
 
