@@ -125,7 +125,6 @@ export default function MessagesScreen() {
           </Text>
         )}
       </View>
-
       {item.unreadCount > 0 && (
         <View style={styles.unreadBadge}>
           <Text style={styles.unreadCount}>{item.unreadCount > 99 ? '99+' : item.unreadCount}</Text>

@@ -361,7 +361,6 @@ export default function RealTimeMap({
             {users.length} users • {isTrackingLocation ? 'GPS Active' : 'GPS Inactive'}
           </Text>
         </View>
-
         {/* Current User Location */}
         {currentUserLocation && (
           <View style={[

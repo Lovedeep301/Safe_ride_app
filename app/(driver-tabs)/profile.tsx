@@ -80,7 +80,6 @@ export default function DriverProfile() {
             </TouchableOpacity>
           </View>
         </View>
-
         {/* Contact Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Contact Information</Text>

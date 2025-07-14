@@ -139,7 +139,6 @@ export default function DriverDashboard() {
             </TouchableOpacity>
           </View>
         </View>
-
         {/* Current Route Card */}
         {currentRoute && (
           <View style={styles.currentRouteCard}>

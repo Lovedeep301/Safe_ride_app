@@ -116,7 +116,6 @@ export default function DriverRoutes() {
           <Text style={styles.modalTitle}>Route Details</Text>
           <View style={{ width: 24 }} />
         </View>
-
         {selectedRoute && (
           <ScrollView style={styles.modalContent}>
             <View style={styles.routeDetailsCard}>

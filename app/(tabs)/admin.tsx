@@ -199,7 +199,6 @@ export default function AdminPanel() {
             </View>
           </View>
         </View>
-
         {/* Settings Options */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Preferences</Text>

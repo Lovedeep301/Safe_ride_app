@@ -90,7 +90,6 @@ export default function DriverPassengers() {
             </View>
           </View>
         </View>
-
         <View style={styles.statusSection}>
           <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}15` }]}>
             <StatusIcon size={16} color={getStatusColor(item.status)} />
