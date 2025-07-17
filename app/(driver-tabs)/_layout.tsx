@@ -29,6 +29,8 @@ export default function DriverTabLayout() {
     const interval = setInterval(checkAuth, 1000);
     
     return () => clearInterval(interval);
+  }
+  )
 
   // Don't render if not authenticated or wrong role
   if (!currentUser || currentUser.role !== 'driver') {
