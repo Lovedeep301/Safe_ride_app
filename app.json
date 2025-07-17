@@ -34,3 +34,22 @@
     }
   }
 }
+{
+  "expo": {
+    "android": {
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "ios": {
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location to show your current position on the map."
+      }
+    },
+    "plugins": [
+      "expo-location",
+      "react-native-maps"
+    ]
+  }
+}
