@@ -71,55 +71,194 @@ class EmergencyServiceClass {
     message: string,
     location: { latitude: number; longitude: number; address?: string }
   ): Promise<EmergencyAlert> {
-    const alert: EmergencyAlert = {
-      id: `alert_${Date.now()}`,
-      userId,
-      userName,
-      userRole,
-      type,
-      message,
-      location,
-      timestamp: new Date(),
-      status: 'active',
-      priority: this.determinePriority(type)
-    };
+    try {
+      // Try Firebase first
+      const { FirebaseEmergencyService } = await import('./FirebaseEmergencyService');
+      const firebaseAlert = await FirebaseEmergencyService.createEmergencyAlert(
+        userId,
+        userName,
+        userRole,
+        type,
+        message,
+        location
+      );
+      
+      // Convert Firebase alert to local format
+      const alert: EmergencyAlert = {
+        id: firebaseAlert.id,
+        userId: firebaseAlert.userId,
+        userName: firebaseAlert.userName,
+        userRole: firebaseAlert.userRole,
+        type: firebaseAlert.type,
+        message: firebaseAlert.message,
+        location: firebaseAlert.location,
+        timestamp: firebaseAlert.timestamp?.toDate ? firebaseAlert.timestamp.toDate() : new Date(),
+        status: firebaseAlert.status,
+        priority: firebaseAlert.priority,
+        acknowledgedBy: firebaseAlert.acknowledgedBy,
+        acknowledgedAt: firebaseAlert.acknowledgedAt?.toDate ? firebaseAlert.acknowledgedAt.toDate() : undefined,
+        resolvedBy: firebaseAlert.resolvedBy,
+        resolvedAt: firebaseAlert.resolvedAt?.toDate ? firebaseAlert.resolvedAt.toDate() : undefined,
+        notes: firebaseAlert.notes
+      };
 
-    this.alerts.unshift(alert);
-    return alert;
+      this.alerts.unshift(alert);
+      return alert;
+    } catch (error) {
+      console.warn('Firebase emergency service not available, using local storage:', error);
+      
+      // Fallback to local storage
+      const alert: EmergencyAlert = {
+        id: `alert_${Date.now()}`,
+        userId,
+        userName,
+        userRole,
+        type,
+        message,
+        location,
+        timestamp: new Date(),
+        status: 'active',
+        priority: this.determinePriority(type)
+      };
+
+      this.alerts.unshift(alert);
+      return alert;
+    }
   }
 
   async getActiveAlerts(): Promise<EmergencyAlert[]> {
-    return this.alerts
-      .filter(alert => alert.status === 'active')
-      .sort((a, b) => {
-        const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
-        return priorityOrder[b.priority] - priorityOrder[a.priority];
-      });
+    try {
+      // Try Firebase first
+      const { FirebaseEmergencyService } = await import('./FirebaseEmergencyService');
+      const firebaseAlerts = await FirebaseEmergencyService.getActiveAlerts();
+      
+      // Convert Firebase alerts to local format
+      const convertedAlerts = firebaseAlerts.map(alert => ({
+        id: alert.id,
+        userId: alert.userId,
+        userName: alert.userName,
+        userRole: alert.userRole,
+        type: alert.type,
+        message: alert.message,
+        location: alert.location,
+        timestamp: alert.timestamp?.toDate ? alert.timestamp.toDate() : new Date(),
+        status: alert.status,
+        priority: alert.priority,
+        acknowledgedBy: alert.acknowledgedBy,
+        acknowledgedAt: alert.acknowledgedAt?.toDate ? alert.acknowledgedAt.toDate() : undefined,
+        resolvedBy: alert.resolvedBy,
+        resolvedAt: alert.resolvedAt?.toDate ? alert.resolvedAt.toDate() : undefined,
+        notes: alert.notes
+      } as EmergencyAlert));
+      
+      return convertedAlerts;
+    } catch (error) {
+      console.warn('Firebase emergency service not available, using local data:', error);
+      
+      // Fallback to local data
+      return this.alerts
+        .filter(alert => alert.status === 'active')
+        .sort((a, b) => {
+          const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        });
+    }
   }
 
   async getAllAlerts(): Promise<EmergencyAlert[]> {
-    return this.alerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    try {
+      // Try Firebase first
+      const { FirebaseEmergencyService } = await import('./FirebaseEmergencyService');
+      const firebaseAlerts = await FirebaseEmergencyService.getAllAlerts();
+      
+      // Convert Firebase alerts to local format
+      const convertedAlerts = firebaseAlerts.map(alert => ({
+        id: alert.id,
+        userId: alert.userId,
+        userName: alert.userName,
+        userRole: alert.userRole,
+        type: alert.type,
+        message: alert.message,
+        location: alert.location,
+        timestamp: alert.timestamp?.toDate ? alert.timestamp.toDate() : new Date(),
+        status: alert.status,
+        priority: alert.priority,
+        acknowledgedBy: alert.acknowledgedBy,
+        acknowledgedAt: alert.acknowledgedAt?.toDate ? alert.acknowledgedAt.toDate() : undefined,
+        resolvedBy: alert.resolvedBy,
+        resolvedAt: alert.resolvedAt?.toDate ? alert.resolvedAt.toDate() : undefined,
+        notes: alert.notes
+      } as EmergencyAlert));
+      
+      return convertedAlerts;
+    } catch (error) {
+      console.warn('Firebase emergency service not available, using local data:', error);
+      return this.alerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    }
   }
 
   async acknowledgeAlert(alertId: string, adminId: string): Promise<boolean> {
-    const alert = this.alerts.find(a => a.id === alertId);
-    if (!alert || alert.status !== 'active') return false;
+    try {
+      // Try Firebase first
+      const { FirebaseEmergencyService } = await import('./FirebaseEmergencyService');
+      const success = await FirebaseEmergencyService.acknowledgeAlert(alertId, adminId);
+      
+      if (success) {
+        // Update local alert
+        const alert = this.alerts.find(a => a.id === alertId);
+        if (alert) {
+          alert.status = 'acknowledged';
+          alert.acknowledgedBy = adminId;
+          alert.acknowledgedAt = new Date();
+        }
+      }
+      
+      return success;
+    } catch (error) {
+      console.warn('Firebase emergency service not available, using local data:', error);
+      
+      // Fallback to local data
+      const alert = this.alerts.find(a => a.id === alertId);
+      if (!alert || alert.status !== 'active') return false;
 
-    alert.status = 'acknowledged';
-    alert.acknowledgedBy = adminId;
-    alert.acknowledgedAt = new Date();
-    return true;
+      alert.status = 'acknowledged';
+      alert.acknowledgedBy = adminId;
+      alert.acknowledgedAt = new Date();
+      return true;
+    }
   }
 
   async resolveAlert(alertId: string, adminId: string, notes?: string): Promise<boolean> {
-    const alert = this.alerts.find(a => a.id === alertId);
-    if (!alert) return false;
+    try {
+      // Try Firebase first
+      const { FirebaseEmergencyService } = await import('./FirebaseEmergencyService');
+      const success = await FirebaseEmergencyService.resolveAlert(alertId, adminId, notes);
+      
+      if (success) {
+        // Update local alert
+        const alert = this.alerts.find(a => a.id === alertId);
+        if (alert) {
+          alert.status = 'resolved';
+          alert.resolvedBy = adminId;
+          alert.resolvedAt = new Date();
+          if (notes) alert.notes = notes;
+        }
+      }
+      
+      return success;
+    } catch (error) {
+      console.warn('Firebase emergency service not available, using local data:', error);
+      
+      // Fallback to local data
+      const alert = this.alerts.find(a => a.id === alertId);
+      if (!alert) return false;
 
-    alert.status = 'resolved';
-    alert.resolvedBy = adminId;
-    alert.resolvedAt = new Date();
-    if (notes) alert.notes = notes;
-    return true;
+      alert.status = 'resolved';
+      alert.resolvedBy = adminId;
+      alert.resolvedAt = new Date();
+      if (notes) alert.notes = notes;
+      return true;
+    }
   }
 
   async markFalseAlarm(alertId: string, adminId: string): Promise<boolean> {

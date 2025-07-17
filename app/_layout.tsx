@@ -27,6 +27,16 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
+    // Initialize AuthService
+    const initAuth = async () => {
+      const { AuthService } = await import('@/services/AuthService');
+      await AuthService.initialize();
+    };
+    
+    initAuth().catch(console.error);
+  }, []);
+
+  useEffect(() => {
     if ((fontsLoaded || fontError) && !authLoading) {
       SplashScreen.hideAsync();
     }

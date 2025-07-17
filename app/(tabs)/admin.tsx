@@ -81,6 +81,17 @@ export default function AdminPanel() {
       return;
     }
 
+    // Validate unique ID format
+    const uniqueIdPattern = /^(ADMIN|DRV|EMP)\d{3}$/;
+    if (!uniqueIdPattern.test(newUser.uniqueId.toUpperCase())) {
+      if (Platform.OS === 'web') {
+        alert('Unique ID must follow format: ADMIN001, DRV001, or EMP001');
+      } else {
+        Alert.alert('Error', 'Unique ID must follow format: ADMIN001, DRV001, or EMP001');
+      }
+      return;
+    }
+
     setIsLoading(true);
     try {
       await AuthService.createUser({

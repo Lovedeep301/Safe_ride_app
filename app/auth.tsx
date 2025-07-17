@@ -52,6 +52,7 @@ export default function AuthScreen() {
     }
 
     setIsLoading(true);
+    setError('');
     
     try {
       const success = await AuthService.login(uniqueId.trim(), password.trim());
@@ -65,18 +66,10 @@ export default function AuthScreen() {
           router.replace('/(tabs)');
         }
       } else {
-        if (Platform.OS === 'web') {
-          alert('Invalid credentials. Please check your ID and password.');
-        } else {
-          Alert.alert('Login Failed', 'Invalid credentials. Please check your ID and password.');
-        }
+        setError('Invalid credentials. Try: ADMIN001/admin123, DRV001/driver123, or EMP001/emp123');
       }
     } catch (error) {
-      if (Platform.OS === 'web') {
-        alert('Login failed. Please check your connection and try again.');
-      } else {
-        Alert.alert('Connection Error', 'Login failed. Please check your connection and try again.');
-      }
+      setError('Login failed. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -306,14 +299,19 @@ export default function AuthScreen() {
               {error && (
                 <Text style={styles.errorText}>{error}</Text>
               )}
-              {error && error.includes('npm run setup-firebase-users') && (
+              {error && error.includes('Try:') && (
                 <View style={styles.setupHint}>
                   <Text style={styles.setupHintText}>
-                    💡 Need demo users? Run this command in terminal:
+                    💡 Demo Accounts Available:
                   </Text>
-                  <Text style={styles.setupCommand}>npm run setup-firebase-users</Text>
                   <Text style={styles.setupHintText}>
-                    Then try logging in with: ADMIN001 / admin123
+                    Admin: ADMIN001 / admin123
+                  </Text>
+                  <Text style={styles.setupHintText}>
+                    Driver: DRV001 / driver123
+                  </Text>
+                  <Text style={styles.setupHintText}>
+                    Employee: EMP001 / emp123
                   </Text>
                 </View>
               )}

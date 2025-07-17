@@ -49,41 +49,37 @@ class AuthServiceClass {
     if (this.isInitialized) return;
     
     try {
-      try {
-        // Initialize Firebase auth state listener first
-        const { FirebaseAuthService } = await import('./FirebaseAuthService');
-        
-        // Subscribe to Firebase auth state changes
-        this.authUnsubscribe = FirebaseAuthService.onAuthStateChanged((firebaseUser) => {
-          if (firebaseUser) {
-            // Convert Firebase user to local user format
-            this.currentUser = {
-              id: firebaseUser.id,
-              name: firebaseUser.name,
-              uniqueId: firebaseUser.uniqueId,
-              role: firebaseUser.role,
-              email: firebaseUser.email,
-              phone: firebaseUser.phone,
-              licenseNumber: firebaseUser.licenseNumber,
-              homeLocation: firebaseUser.homeLocation,
-              vehicleInfo: firebaseUser.vehicleInfo,
-              emergencyContact: firebaseUser.emergencyContact,
-              isActive: firebaseUser.isActive,
-              lastSeen: firebaseUser.lastSeen,
-              currentLocation: firebaseUser.currentLocation
-            };
-            
-            // Store in local storage
-            this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
-          } else {
-            // User signed out
-            this.currentUser = null;
-            this.removeStorageItem('currentUser');
-          }
-        });
-      } catch (firebaseError) {
-        console.warn('Firebase auth not available, using local storage only');
-      }
+      // Initialize Firebase auth state listener first
+      const { FirebaseAuthService } = await import('./FirebaseAuthService');
+      
+      // Subscribe to Firebase auth state changes
+      this.authUnsubscribe = FirebaseAuthService.onAuthStateChanged((firebaseUser) => {
+        if (firebaseUser) {
+          // Convert Firebase user to local user format
+          this.currentUser = {
+            id: firebaseUser.id,
+            name: firebaseUser.name,
+            uniqueId: firebaseUser.uniqueId,
+            role: firebaseUser.role,
+            email: firebaseUser.email,
+            phone: firebaseUser.phone,
+            licenseNumber: firebaseUser.licenseNumber,
+            homeLocation: firebaseUser.homeLocation,
+            vehicleInfo: firebaseUser.vehicleInfo,
+            emergencyContact: firebaseUser.emergencyContact,
+            isActive: firebaseUser.isActive,
+            lastSeen: firebaseUser.lastSeen,
+            currentLocation: firebaseUser.currentLocation
+          };
+          
+          // Store in local storage
+          this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
+        } else {
+          // User signed out
+          this.currentUser = null;
+          this.removeStorageItem('currentUser');
+        }
+      });
       
       // Try to restore user from storage
       const stored = await this.getStorageItem('currentUser');
@@ -97,9 +93,19 @@ class AuthServiceClass {
         }
       }
     } catch (error) {
-      console.error('Error initializing auth service:', error);
-      // Clear invalid storage
-      this.removeStorageItem('currentUser');
+      console.warn('Firebase auth not available, using local storage only');
+      
+      // Try to restore user from storage for offline mode
+      try {
+        const stored = await this.getStorageItem('currentUser');
+        if (stored) {
+          const userData = JSON.parse(stored);
+          this.currentUser = userData;
+        }
+      } catch (parseError) {
+        console.error('Error parsing stored user data:', parseError);
+        this.removeStorageItem('currentUser');
+      }
     }
     
     this.isInitialized = true;
@@ -133,6 +139,8 @@ class AuthServiceClass {
   }
 
   async login(uniqueId: string, password: string): Promise<boolean> {
+    await this.initialize();
+    
     try {
       // Try Firebase authentication first
       const { FirebaseAuthService } = await import('./FirebaseAuthService');
@@ -190,6 +198,16 @@ class AuthServiceClass {
           lastSeen: new Date()
         },
         {
+          id: 'admin002',
+          name: 'Sarah Wilson',
+          uniqueId: 'ADMIN002',
+          role: 'admin' as const,
+          email: 'admin002@company.com',
+          phone: '+1-555-0102',
+          isActive: true,
+          lastSeen: new Date()
+        },
+        {
           id: 'driver001',
           name: 'Driver User',
           uniqueId: 'DRV001',
@@ -201,6 +219,22 @@ class AuthServiceClass {
             plateNumber: 'ABC-1234',
             model: 'Toyota Hiace',
             capacity: 12
+          },
+          isActive: true,
+          lastSeen: new Date()
+        },
+        {
+          id: 'driver002',
+          name: 'Jennifer Chen',
+          uniqueId: 'DRV002',
+          role: 'driver' as const,
+          email: 'driver002@company.com',
+          phone: '+1-555-0202',
+          licenseNumber: 'DL987654321',
+          vehicleInfo: {
+            plateNumber: 'XYZ-5678',
+            model: 'Ford Transit',
+            capacity: 15
           },
           isActive: true,
           lastSeen: new Date()
@@ -220,12 +254,27 @@ class AuthServiceClass {
           isActive: true,
           lastSeen: new Date()
         }
+        {
+          id: 'emp002',
+          name: 'Bob Smith',
+          uniqueId: 'EMP002',
+          role: 'employee' as const,
+          email: 'employee002@company.com',
+          phone: '+1-555-0302',
+          homeLocation: {
+            latitude: 40.7505,
+            longitude: -73.9934,
+            address: '456 Oak Ave, New York, NY'
+          },
+          isActive: true,
+          lastSeen: new Date()
+        }
       ];
 
       // Check credentials
       const user = mockUsers.find(u => 
         u.uniqueId.toUpperCase() === uniqueId.toUpperCase() && 
-        password === 'demo123' // Simple password for demo
+        (password === 'admin123' || password === 'driver123' || password === 'emp123')
       );
 
       if (user) {
@@ -246,11 +295,11 @@ class AuthServiceClass {
       // Sign out from Firebase
       const { FirebaseAuthService } = await import('./FirebaseAuthService');
       await FirebaseAuthService.signOut();
-      
-      this.currentUser = null;
-      this.removeStorageItem('currentUser');
     } catch (error) {
       console.error('Logout error:', error);
+      // Clear local data even if Firebase logout fails
+      this.currentUser = null;
+      this.removeStorageItem('currentUser');
     }
   }
 

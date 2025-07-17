@@ -28,8 +28,8 @@ class GroupServiceClass {
       id: 'group1',
       name: 'Downtown Cab Group',
       description: 'Daily commute from downtown area',
-      members: ['emp001', 'emp002', 'emp003'],
-      createdBy: 'admin001',
+      members: ['EMP001', 'EMP002'],
+      createdBy: 'ADMIN001',
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7),
       pickupLocation: 'Downtown Transit Hub',
       pickupTime: '8:30 AM',
@@ -39,8 +39,8 @@ class GroupServiceClass {
       id: 'group2',
       name: 'Westside Cab Group',
       description: 'Westside pickup route',
-      members: ['emp004', 'emp005'],
-      createdBy: 'admin001',
+      members: ['EMP003', 'EMP004'],
+      createdBy: 'ADMIN001',
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5),
       pickupLocation: 'Westside Mall',
       pickupTime: '9:00 AM',
@@ -119,11 +119,11 @@ class GroupServiceClass {
 
   private getMemberName(memberId: string): string {
     const names: Record<string, string> = {
-      'emp001': 'John Doe',
-      'emp002': 'Sarah Johnson',
-      'emp003': 'Mike Chen',
-      'emp004': 'Lisa Wong',
-      'emp005': 'David Kim'
+      'EMP001': 'Alice Johnson',
+      'EMP002': 'Bob Smith',
+      'EMP003': 'Mike Chen',
+      'EMP004': 'Lisa Wong',
+      'EMP005': 'David Kim'
     };
     return names[memberId] || 'Unknown Employee';
   }

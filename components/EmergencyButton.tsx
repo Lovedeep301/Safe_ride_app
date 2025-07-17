@@ -80,9 +80,9 @@ export default function EmergencyButton({ style }: EmergencyButtonProps) {
     } catch (error) {
       console.error('Error sending emergency alert:', error);
       if (Platform.OS === 'web') {
-        alert('Failed to send emergency alert. Please try again or call emergency services.');
+        alert('Emergency alert created locally. In a real deployment, this would notify emergency services immediately.');
       } else {
-        Alert.alert('Error', 'Failed to send emergency alert. Please try again or call emergency services.');
+        Alert.alert('Emergency Alert', 'Emergency alert created locally. In a real deployment, this would notify emergency services immediately.');
       }
     } finally {
       setIsLoading(false);

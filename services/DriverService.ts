@@ -41,13 +41,13 @@ class DriverServiceClass {
       destination: 'Tech Park Office Complex',
       scheduledTime: '8:30 AM',
       status: 'scheduled',
-      driverId: 'driver001',
+      driverId: 'DRV001',
       passengerCount: 8,
       estimatedDuration: 45,
       distance: 12.5,
       passengers: [
         {
-          id: 'emp001',
+          id: 'EMP001',
           name: 'Alice Johnson',
           pickupPoint: 'Downtown Transit Hub - Gate A',
           pickupTime: '8:30 AM',
@@ -55,7 +55,7 @@ class DriverServiceClass {
           phone: '+1-555-0301'
         },
         {
-          id: 'emp002',
+          id: 'EMP002',
           name: 'Bob Smith',
           pickupPoint: 'Downtown Transit Hub - Gate A',
           pickupTime: '8:30 AM',
@@ -71,7 +71,7 @@ class DriverServiceClass {
       destination: 'Downtown Transit Hub',
       scheduledTime: '6:00 PM',
       status: 'scheduled',
-      driverId: 'driver001',
+      driverId: 'DRV001',
       passengerCount: 8,
       estimatedDuration: 50,
       distance: 12.5,
@@ -84,7 +84,7 @@ class DriverServiceClass {
       destination: 'Tech Park Office Complex',
       scheduledTime: '9:00 AM',
       status: 'completed',
-      driverId: 'driver002',
+      driverId: 'DRV002',
       passengerCount: 6,
       estimatedDuration: 35,
       distance: 8.2,
@@ -95,7 +95,7 @@ class DriverServiceClass {
   private vehicleStatuses: VehicleStatus[] = [
     {
       id: 'vehicle1',
-      driverId: 'driver001',
+      driverId: 'DRV001',
       fuelLevel: 85,
       mileage: 45230,
       lastMaintenance: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15),
@@ -104,7 +104,7 @@ class DriverServiceClass {
     },
     {
       id: 'vehicle2',
-      driverId: 'driver002',
+      driverId: 'DRV002',
       fuelLevel: 92,
       mileage: 38450,
       lastMaintenance: new Date(Date.now() - 1000 * 60 * 60 * 24 * 8),
@@ -114,9 +114,9 @@ class DriverServiceClass {
   ];
 
   private dutyStatuses: Record<string, boolean> = {
-    'driver001': false,
-    'driver002': true,
-    'driver003': false
+    'DRV001': false,
+    'DRV002': true,
+    'DRV003': false
   };
 
   async getTodayRoutes(driverId: string): Promise<Route[]> {

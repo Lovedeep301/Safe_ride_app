@@ -46,7 +46,8 @@ export default function DriverMessages() {
         });
         setConversationSubscription(() => unsubscribe);
       } catch (error) {
-        console.log('Firebase real-time updates not available, using polling');
+        console.warn('Firebase real-time updates not available, loading local data');
+        loadConversations();
       }
     }
   }, [user]);

@@ -39,7 +39,8 @@ export default function MessagesScreen() {
 
   const openConversation = async (conversation: Conversation) => {
     setSelectedConversation(conversation);
-    setCurrentScreen('chat');
+        console.warn('Firebase real-time updates not available, loading local data');
+        loadConversations();
 
     try {
       const msgs = await MessageService.getMessages(conversation.id);

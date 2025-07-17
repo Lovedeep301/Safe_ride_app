@@ -216,14 +216,22 @@ export default function TestFirebaseFeatures() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
-          <AlertTriangle size={48} color="#EF4444" />
-          <Text style={styles.errorTitle}>Authentication Required</Text>
+          <AlertTriangle size={48} color="#F59E0B" />
+          <Text style={styles.errorTitle}>Ready to Test</Text>
           <Text style={styles.errorText}>
             {authUser 
-              ? `Logged in as ${authUser.name}. Firebase sync in progress...`
-              : 'Please log in to test Firebase features'
+              ? `Logged in as ${authUser.name} (${authUser.uniqueId}). You can test Firebase features or use local data.`
+              : 'Please log in to test features'
             }
           </Text>
+          {authUser && (
+            <TouchableOpacity 
+              style={styles.continueButton}
+              onPress={() => setUser(authUser)}
+            >
+              <Text style={styles.continueButtonText}>Continue with Local Data</Text>
+            </TouchableOpacity>
+          )}
           <View style={styles.debugContainer}>
             <Text style={styles.debugTitle}>Debug Info:</Text>
             <Text style={styles.debugText}>{debugInfo}</Text>
@@ -457,6 +465,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   testButtonText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#FFFFFF',
+  },
+  continueButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
+  continueButtonText: {
     fontSize: 14,
     fontFamily: 'Inter-SemiBold',
     color: '#FFFFFF',

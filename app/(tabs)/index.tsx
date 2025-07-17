@@ -242,7 +242,9 @@ export default function HomeScreen() {
         )}
 
         </ScrollView>
-      <EmergencyButton style={styles.emergencyButton} />
+      <View style={styles.emergencyButtonContainer}>
+        <EmergencyButton style={styles.emergencyButton} />
+      </View>
     </SafeAreaView>
 
   );
@@ -412,9 +414,13 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#374151',
   },
-  emergencyButton: {
+  emergencyButtonContainer: {
     position: 'absolute',
     bottom: 24,
     right: 24,
+    zIndex: 1000,
+  },
+  emergencyButton: {
+    // Remove absolute positioning since it's handled by container
   },
 });

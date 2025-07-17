@@ -178,51 +178,56 @@ export default function RealTimeMap({
       locationSubscription();
     }
 
-    // Subscribe to real-time location updates
-    const unsubscribe = FirebaseLocationService.subscribeToLocationUpdates(
-      (locationUpdates) => {
-        // Convert to MapUser format
-        const mapUsers: MapUser[] = locationUpdates.map(update => ({
-          id: update.userId,
-          name: update.userName,
-          role: update.userRole,
-          location: {
-            latitude: update.location.latitude,
-            longitude: update.location.longitude,
-            address: update.location.address,
-            timestamp: update.timestamp?.toDate ? update.timestamp.toDate() : new Date(),
-            accuracy: update.location.accuracy
-          },
-          status: update.isEmergency ? 'emergency' : 'online',
-          batteryLevel: update.batteryLevel,
-          ...(update.userRole === 'driver' && {
-            vehicleInfo: {
-              plateNumber: `${update.userId.slice(-3)}-${Math.floor(Math.random() * 1000)}`,
-              model: 'Toyota Hiace'
+    try {
+      // Subscribe to real-time location updates
+      const unsubscribe = FirebaseLocationService.subscribeToLocationUpdates(
+        (locationUpdates) => {
+          // Convert to MapUser format
+          const mapUsers: MapUser[] = locationUpdates.map(update => ({
+            id: update.userId,
+            name: update.userName,
+            role: update.userRole,
+            location: {
+              latitude: update.location.latitude,
+              longitude: update.location.longitude,
+              address: update.location.address,
+              timestamp: update.timestamp?.toDate ? update.timestamp.toDate() : new Date(),
+              accuracy: update.location.accuracy
+            },
+            status: update.isEmergency ? 'emergency' : 'online',
+            batteryLevel: update.batteryLevel,
+            ...(update.userRole === 'driver' && {
+              vehicleInfo: {
+                plateNumber: `${update.userId.slice(-3)}-${Math.floor(Math.random() * 1000)}`,
+                model: 'Toyota Hiace'
+              }
+            })
+          }));
+
+          // Filter by role if specified
+          const filteredUsers = filterRole === 'all' 
+            ? mapUsers 
+            : mapUsers.filter(user => user.role === filterRole);
+
+          // Remove duplicates (keep most recent for each user)
+          const uniqueUsers = filteredUsers.reduce((acc, user) => {
+            const existing = acc.find(u => u.id === user.id);
+            if (!existing || user.location.timestamp > existing.location.timestamp) {
+              return [...acc.filter(u => u.id !== user.id), user];
             }
-          })
-        }));
+            return acc;
+          }, [] as MapUser[]);
 
-        // Filter by role if specified
-        const filteredUsers = filterRole === 'all' 
-          ? mapUsers 
-          : mapUsers.filter(user => user.role === filterRole);
+          setUsers(uniqueUsers);
+        },
+        filterRole === 'all' ? undefined : filterRole
+      );
 
-        // Remove duplicates (keep most recent for each user)
-        const uniqueUsers = filteredUsers.reduce((acc, user) => {
-          const existing = acc.find(u => u.id === user.id);
-          if (!existing || user.location.timestamp > existing.location.timestamp) {
-            return [...acc.filter(u => u.id !== user.id), user];
-          }
-          return acc;
-        }, [] as MapUser[]);
-
-        setUsers(uniqueUsers);
-      },
-      filterRole === 'all' ? undefined : filterRole
-    );
-
-    setLocationSubscription(() => unsubscribe);
+      setLocationSubscription(() => unsubscribe);
+    } catch (error) {
+      console.warn('Firebase location subscription not available, using manual refresh');
+      loadRealTimeUsers();
+    }
 
     return () => {
       if (unsubscribe) {

@@ -89,14 +89,16 @@ class FirebaseAuthServiceClass {
         // Check if we have any users at all
         const allUsersQuery = await getDocs(collection(db, 'users'));
         if (allUsersQuery.empty) {
-          throw new Error(`No users found in database. Please run 'npm run setup-firebase-users' to create demo users first.`);
+          console.warn('No users found in Firebase database. Using local authentication.');
+          return false;
         } else {
           console.log('Available users in database:');
           allUsersQuery.forEach(doc => {
             const userData = doc.data();
             console.log(`- ${userData.uniqueId || 'NO_UNIQUE_ID'} (${userData.email || 'NO_EMAIL'})`);
           });
-          throw new Error(`User not found with ID: ${uniqueId.toUpperCase()}. Available users are listed in console. Run 'npm run setup-firebase-users' if needed.`);
+          console.warn(`User not found with ID: ${uniqueId.toUpperCase()}. Available users are listed in console.`);
+          return false;
         }
       }
 
@@ -106,7 +108,8 @@ class FirebaseAuthServiceClass {
       console.log(`Found user: ${userData.name} (${userData.email})`);
 
       if (!userData.email) {
-        throw new Error('User email not found');
+        console.warn('User email not found');
+        return false;
       }
 
       // Sign in with email and password

@@ -22,25 +22,63 @@ export interface Conversation {
 }
 
 class MessageServiceClass {
-  private useFirebase = true; // Toggle to use Firebase or mock data
+  private conversations: Conversation[] = [
+    {
+      id: 'conv1',
+      type: 'group',
+      name: 'Downtown Cab Group',
+      participants: ['emp001', 'emp002', 'emp003', 'driver001'],
+      unreadCount: 0
+    },
+    {
+      id: 'conv2',
+      type: 'group',
+      name: 'Westside Cab Group',
+      participants: ['emp004', 'emp005', 'driver002'],
+      unreadCount: 0
+    },
+    {
+      id: 'conv3',
+      type: 'direct',
+      name: 'Admin Support',
+      participants: ['emp001', 'admin001'],
+      unreadCount: 0
+    }
+  ];
+
+  private messages: Message[] = [
+    {
+      id: 'msg1',
+      senderId: 'driver001',
+      senderName: 'Michael Rodriguez',
+      content: 'Good morning everyone! I\'ll be at the pickup point in 10 minutes.',
+      timestamp: new Date(Date.now() - 1000 * 60 * 15),
+      type: 'group',
+      isRead: false
+    },
+    {
+      id: 'msg2',
+      senderId: 'emp001',
+      senderName: 'Alice Johnson',
+      content: 'Thanks for the update! I\'m already at the pickup point.',
+      timestamp: new Date(Date.now() - 1000 * 60 * 10),
+      type: 'group',
+      isRead: false
+    }
+  ];
 
   async getConversations(): Promise<Conversation[]> {
-    if (this.useFirebase) {
-      try {
-        const { AuthService } = await import('./AuthService');
-        const currentUser = AuthService.getCurrentUser();
-        if (!currentUser) return [];
-        
-        const firebaseConversations = await FirebaseMessageService.getConversations(currentUser.id);
-        return this.convertFirebaseConversations(firebaseConversations);
-      } catch (error) {
-        console.error('Error fetching Firebase conversations:', error);
-        return [];
-      }
+    try {
+      const { AuthService } = await import('./AuthService');
+      const currentUser = AuthService.getCurrentUser();
+      if (!currentUser) return this.getMockConversations();
+      
+      const firebaseConversations = await FirebaseMessageService.getConversations(currentUser.id);
+      return this.convertFirebaseConversations(firebaseConversations);
+    } catch (error) {
+      console.warn('Firebase conversations not available, using local data:', error);
+      return this.getMockConversations();
     }
-    
-    // Fallback to mock data
-    return this.getMockConversations();
   }
 
   async getDriverConversations(): Promise<Conversation[]> {
@@ -52,88 +90,70 @@ class MessageServiceClass {
   }
 
   async getMessages(conversationId: string): Promise<Message[]> {
-    if (this.useFirebase) {
-      try {
-        const firebaseMessages = await FirebaseMessageService.getMessages(conversationId);
-        return this.convertFirebaseMessages(firebaseMessages);
-      } catch (error) {
-        console.error('Error fetching Firebase messages:', error);
-        return [];
-      }
+    try {
+      const firebaseMessages = await FirebaseMessageService.getMessages(conversationId);
+      return this.convertFirebaseMessages(firebaseMessages);
+    } catch (error) {
+      console.warn('Firebase messages not available, using local data:', error);
+      return this.getMockMessages(conversationId);
     }
-    
-    // Fallback to mock data
-    return this.getMockMessages(conversationId);
   }
 
   async sendMessage(conversationId: string, content: string, senderId: string, senderName: string): Promise<Message> {
-    if (this.useFirebase) {
-      try {
-        const firebaseMessage = await FirebaseMessageService.sendMessage(
-          conversationId,
-          content,
-          senderId,
-          senderName
-        );
-        return this.convertFirebaseMessage(firebaseMessage);
-      } catch (error) {
-        console.error('Error sending Firebase message:', error);
-        throw error;
-      }
+    try {
+      const firebaseMessage = await FirebaseMessageService.sendMessage(
+        conversationId,
+        content,
+        senderId,
+        senderName
+      );
+      return this.convertFirebaseMessage(firebaseMessage);
+    } catch (error) {
+      console.warn('Firebase send message not available, using local storage:', error);
+      return this.sendMockMessage(conversationId, content, senderId, senderName);
     }
-    
-    // Fallback to mock implementation
-    return this.sendMockMessage(conversationId, content, senderId, senderName);
   }
 
   async markAsRead(conversationId: string, userId: string): Promise<void> {
-    if (this.useFirebase) {
-      try {
-        await FirebaseMessageService.markAsRead(conversationId, userId);
-      } catch (error) {
-        console.error('Error marking Firebase messages as read:', error);
-      }
+    try {
+      await FirebaseMessageService.markAsRead(conversationId, userId);
+    } catch (error) {
+      console.warn('Firebase mark as read not available:', error);
+      // Update local messages
+      this.messages
+        .filter(m => m.senderId !== userId)
+        .forEach(m => m.isRead = true);
     }
   }
 
   async createDirectConversation(currentUserId: string, targetUserId: string, targetUserName: string): Promise<Conversation> {
-    if (this.useFirebase) {
-      try {
-        const firebaseConversation = await FirebaseMessageService.createConversation({
-          type: 'direct',
-          name: targetUserName,
-          participants: [currentUserId, targetUserId],
-          unreadCount: 0
-        });
-        return this.convertFirebaseConversation(firebaseConversation);
-      } catch (error) {
-        console.error('Error creating Firebase conversation:', error);
-        throw error;
-      }
+    try {
+      const firebaseConversation = await FirebaseMessageService.createConversation({
+        type: 'direct',
+        name: targetUserName,
+        participants: [currentUserId, targetUserId],
+        unreadCount: 0
+      });
+      return this.convertFirebaseConversation(firebaseConversation);
+    } catch (error) {
+      console.warn('Firebase create conversation not available, using local storage:', error);
+      return this.createMockDirectConversation(currentUserId, targetUserId, targetUserName);
     }
-    
-    // Fallback to mock implementation
-    return this.createMockDirectConversation(currentUserId, targetUserId, targetUserName);
   }
 
   async createEmergencyConversation(userId: string): Promise<Conversation> {
-    if (this.useFirebase) {
-      try {
-        const firebaseConversation = await FirebaseMessageService.createConversation({
-          type: 'emergency',
-          name: 'Emergency Support',
-          participants: [userId, 'admin001'],
-          unreadCount: 0
-        });
-        return this.convertFirebaseConversation(firebaseConversation);
-      } catch (error) {
-        console.error('Error creating Firebase emergency conversation:', error);
-        throw error;
-      }
+    try {
+      const firebaseConversation = await FirebaseMessageService.createConversation({
+        type: 'emergency',
+        name: 'Emergency Support',
+        participants: [userId, 'admin001'],
+        unreadCount: 0
+      });
+      return this.convertFirebaseConversation(firebaseConversation);
+    } catch (error) {
+      console.warn('Firebase emergency conversation not available, using local storage:', error);
+      return this.createMockEmergencyConversation(userId);
     }
-    
-    // Fallback to mock implementation
-    return this.createMockEmergencyConversation(userId);
   }
 
   // Conversion methods for Firebase data
@@ -172,81 +192,78 @@ class MessageServiceClass {
 
   // Mock data methods (fallback)
   private getMockConversations(): Conversation[] {
-    const mockConversations = [
-      {
-        id: 'conv1',
-        type: 'group' as const,
-        name: 'Downtown Cab Group',
-        participants: ['emp001', 'emp002', 'emp003', 'driver001'],
-        groupId: 'group1',
-        unreadCount: 3,
-        lastMessage: {
-          id: '4',
-          senderId: 'driver001',
-          senderName: 'Michael Rodriguez',
-          content: 'Running 5 minutes late due to traffic. Please wait at pickup point.',
-          timestamp: new Date(Date.now() - 1000 * 60 * 10),
-          type: 'group' as const,
-          groupId: 'group1',
-          isRead: false
-        }
-      }
-    ];
-    
-    return mockConversations.sort((a, b) => {
-      const aTime = a.lastMessage?.timestamp.getTime() || 0;
-      const bTime = b.lastMessage?.timestamp.getTime() || 0;
-      return bTime - aTime;
+    const { AuthService } = require('./AuthService');
+    const currentUser = AuthService.getCurrentUser();
+    if (!currentUser) return [];
+
+    // Filter conversations by user participation
+    const userConversations = this.conversations.filter(conv => 
+      conv.participants.includes(currentUser.id)
+    );
+
+    // Add last messages
+    return userConversations.map(conv => {
+      const convMessages = this.messages.filter(m => 
+        conv.participants.includes(m.senderId)
+      ).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      
+      return {
+        ...conv,
+        lastMessage: convMessages[0],
+        unreadCount: convMessages.filter(m => !m.isRead && m.senderId !== currentUser.id).length
+      };
     });
   }
 
   private getMockMessages(conversationId: string): Message[] {
-    const mockMessages = [
-      {
-        id: '1',
-        senderId: 'emp002',
-        senderName: 'Bob Smith',
-        content: 'Hey, are we still taking the same cab today?',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30),
-        type: 'group' as const,
-        groupId: 'group1',
-        isRead: false
-      }
-    ];
-    
-    return mockMessages.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+    const conversation = this.conversations.find(c => c.id === conversationId);
+    if (!conversation) return [];
+
+    // Return messages from participants in this conversation
+    return this.messages
+      .filter(m => conversation.participants.includes(m.senderId))
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 
   private async sendMockMessage(conversationId: string, content: string, senderId: string, senderName: string): Promise<Message> {
-    return {
+    const newMessage: Message = {
       id: `msg_${Date.now()}`,
       senderId,
       senderName,
       content,
       timestamp: new Date(),
-      type: 'direct',
+      type: 'group',
       isRead: false
     };
+
+    this.messages.push(newMessage);
+    return newMessage;
   }
 
   private async createMockDirectConversation(currentUserId: string, targetUserId: string, targetUserName: string): Promise<Conversation> {
-    return {
+    const newConversation: Conversation = {
       id: `conv_${Date.now()}`,
       type: 'direct',
       name: targetUserName,
       participants: [currentUserId, targetUserId],
       unreadCount: 0
     };
+
+    this.conversations.push(newConversation);
+    return newConversation;
   }
 
   private async createMockEmergencyConversation(userId: string): Promise<Conversation> {
-    return {
+    const newConversation: Conversation = {
       id: `emergency_${Date.now()}`,
       type: 'emergency',
       name: 'Emergency Support',
       participants: [userId, 'admin001'],
       unreadCount: 0
     };
+
+    this.conversations.push(newConversation);
+    return newConversation;
   }
 }
 
