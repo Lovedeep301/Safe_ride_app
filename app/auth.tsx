@@ -302,16 +302,16 @@ export default function AuthScreen() {
               {error && error.includes('Try:') && (
                 <View style={styles.setupHint}>
                   <Text style={styles.setupHintText}>
-                    💡 Demo Accounts Available:
+                    💡 Demo Accounts Available
                   </Text>
                   <Text style={styles.setupHintText}>
-                    Admin: ADMIN001 / admin123
+                    Admin ADMIN001 / admin123
                   </Text>
                   <Text style={styles.setupHintText}>
-                    Driver: DRV001 / driver123
+                    Driver DRV001 / driver123
                   </Text>
                   <Text style={styles.setupHintText}>
-                    Employee: EMP001 / emp123
+                    Employee EMP001 / emp123
                   </Text>
                 </View>
               )}
