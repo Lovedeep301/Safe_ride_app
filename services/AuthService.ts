@@ -167,7 +167,7 @@ class AuthServiceClass {
           };
           
           // Store in local storage for persistence
-          this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
+          await this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
           return true;
         }
       }
@@ -279,7 +279,7 @@ class AuthServiceClass {
 
       if (user) {
         this.currentUser = user;
-        this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
+        await this.setStorageItem('currentUser', JSON.stringify(this.currentUser));
         return true;
       }
       
@@ -297,10 +297,11 @@ class AuthServiceClass {
       await FirebaseAuthService.signOut();
     } catch (error) {
       console.error('Logout error:', error);
-      // Clear local data even if Firebase logout fails
-      this.currentUser = null;
-      this.removeStorageItem('currentUser');
     }
+    
+    // Always clear local data
+    this.currentUser = null;
+    await this.removeStorageItem('currentUser');
   }
 
   getCurrentUser(): User | null {

@@ -66,7 +66,7 @@ export default function AuthScreen() {
           router.replace('/(tabs)');
         }
       } else {
-        setError('Invalid credentials. Try: ADMIN001/admin123, DRV001/driver123, or EMP001/emp123');
+        setError('Invalid credentials. Please check your ID and password.');
       }
     } catch (error) {
       setError('Login failed. Please check your connection and try again.');

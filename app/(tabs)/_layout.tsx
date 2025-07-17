@@ -5,27 +5,108 @@ import { Chrome as Home, Users, MessageCircle, Settings, Database, TestTube, Bel
 import { AuthService } from '@/services/AuthService';
 
 export default function TabLayout() {
+  useEffect(() => {
+    const checkAuth = () => {
+      const currentUser = AuthService.getCurrentUser();
+      
+      // Check authentication and role
+      if (!AuthService.isAuthenticated()) {
+        router.replace('/auth');
+        return;
+      }
+
+      // Redirect drivers to their interface
+      if (currentUser?.role === 'driver') {
+        router.replace('/(driver-tabs)');
+        return;
+      }
+    };
+    
+    // Check immediately
+    checkAuth();
+    
+    // Set up interval to check auth state
+    const interval = setInterval(checkAuth, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   const currentUser = AuthService.getCurrentUser();
   const isAdmin = currentUser?.role === 'admin';
 
-  useEffect(() => {
-    // Check authentication and role
-    if (!AuthService.isAuthenticated()) {
-      router.replace('/auth');
-      return;
-    }
-
-    // Redirect drivers to their interface
-    if (currentUser?.role === 'driver') {
-      router.replace('/(driver-tabs)');
-      return;
-    }
-  }, [currentUser]);
-
   // Don't render if not authenticated or wrong role
-  if (!AuthService.isAuthenticated() || currentUser?.role === 'driver') {
+  if (!currentUser) {
     return null;
   }
+
+  if (currentUser.role === 'driver') {
+    // This will be handled by the useEffect redirect
+    return null;
+  }
+
+  // Show different tabs based on user role
+  const getTabsForRole = () => {
+    const baseTabs = [
+      {
+        name: "index",
+        title: 'Home',
+        icon: Home
+      },
+      {
+        name: "groups",
+        title: 'Groups',
+        icon: Users
+      },
+      {
+        name: "messages",
+        title: 'Messages',
+        icon: MessageCircle
+      }
+    ];
+
+    if (isAdmin) {
+      return [
+        ...baseTabs,
+        {
+          name: "notifications",
+          title: 'Alerts',
+          icon: Bell
+        },
+        {
+          name: "firebase-setup",
+          title: 'Setup',
+          icon: Database
+        },
+        {
+          name: "test-firebase",
+          title: 'Test',
+          icon: TestTube
+        },
+        {
+          name: "admin",
+          title: 'Admin',
+          icon: Settings
+        }
+      ];
+    } else {
+      return [
+        ...baseTabs,
+        {
+          name: "notifications",
+          title: 'Alerts',
+          icon: Bell
+        },
+        {
+          name: "admin",
+          title: 'Settings',
+          icon: Settings
+        }
+      ];
+    }
+  };
+
+  const tabs = getTabsForRole();
+
   return (
     <Tabs
       screenOptions={{
@@ -45,69 +126,18 @@ export default function TabLayout() {
         },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="groups"
-        options={{
-          title: 'Groups',
-          tabBarIcon: ({ size, color }) => (
-            <Users size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ size, color }) => (
-            <MessageCircle size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          title: 'Alerts',
-          tabBarIcon: ({ size, color }) => (
-            <Bell size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="firebase-setup"
-        options={{
-          title: 'Setup',
-          tabBarIcon: ({ size, color }) => (
-            <Database size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="test-firebase"
-        options={{
-          title: 'Test',
-          tabBarIcon: ({ size, color }) => (
-            <TestTube size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="admin"
-        options={{
-          title: isAdmin ? 'Admin' : 'Settings',
-          tabBarIcon: ({ size, color }) => (
-            <Settings size={size} color={color} />
-          ),
-        }}
-      />
+      {tabs.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            tabBarIcon: ({ size, color }) => (
+              <tab.icon size={size} color={color} />
+            ),
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

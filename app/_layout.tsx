@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { router } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useFonts } from 'expo-font';
@@ -11,13 +12,12 @@ import {
   Inter_700Bold
 } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFirebaseAuth } from '@/hooks/useFirebaseAuth';
+import { AuthService } from '@/services/AuthService';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   useFrameworkReady();
-  const { loading: authLoading } = useFirebaseAuth();
 
   const [fontsLoaded, fontError] = useFonts({
     'Inter-Regular': Inter_400Regular,
@@ -29,18 +29,30 @@ export default function RootLayout() {
   useEffect(() => {
     // Initialize AuthService
     const initAuth = async () => {
-      const { AuthService } = await import('@/services/AuthService');
       await AuthService.initialize();
+      
+      // Check if user is authenticated and redirect appropriately
+      const currentUser = AuthService.getCurrentUser();
+      if (currentUser) {
+        // Redirect based on user role
+        if (currentUser.role === 'driver') {
+          router.replace('/(driver-tabs)');
+        } else {
+          router.replace('/(tabs)');
+        }
+      } else {
+        router.replace('/auth');
+      }
     };
     
     initAuth().catch(console.error);
   }, []);
 
   useEffect(() => {
-    if ((fontsLoaded || fontError) && !authLoading) {
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError, authLoading]);
+  }, [fontsLoaded, fontError]);
 
   useEffect(() => {
     // Enable rotation support
@@ -57,7 +69,7 @@ export default function RootLayout() {
   }, []);
   
   // Show loading screen while fonts or auth are loading
-  if ((!fontsLoaded && !fontError) || authLoading) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
