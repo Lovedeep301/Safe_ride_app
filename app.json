@@ -13,10 +13,17 @@
       "backgroundColor": "#F8FAFC"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We need your location to show your current position on the map."
+      }
     },
     "android": {
-      "screenOrientation": "default"
+      "screenOrientation": "default",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -27,29 +34,12 @@
       "expo-router", 
       "expo-font", 
       "expo-web-browser",
-      "@react-native-firebase/app"
+      "@react-native-firebase/app",
+      "expo-location",
+      "react-native-maps"
     ],
     "experiments": {
       "typedRoutes": true
     }
-  }
-}
-{
-  "expo": {
-    "android": {
-      "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ]
-    },
-    "ios": {
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "We need your location to show your current position on the map."
-      }
-    },
-    "plugins": [
-      "expo-location",
-      "react-native-maps"
-    ]
   }
 }
