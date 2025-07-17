@@ -253,7 +253,7 @@ class AuthServiceClass {
           },
           isActive: true,
           lastSeen: new Date()
-        }
+        },
         {
           id: 'emp002',
           name: 'Bob Smith',
