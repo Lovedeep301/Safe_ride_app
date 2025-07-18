@@ -93,8 +93,7 @@ export default function DriverPassengers() {
         <View style={styles.statusSection}>
           <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}15` }]}>
             <StatusIcon size={16} color={getStatusColor(item.status)} />
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {item.status.replace('-', ' ')}</Text>
+            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status.replace('-', ' ')}</Text>
           </View>
 
           {item.status === 'confirmed' && (
