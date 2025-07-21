@@ -13,6 +13,7 @@ import { MapPin, Users, Car, RefreshCw, Zap, Clock, Navigation, Crosshair } from
 import { AuthService } from '@/services/AuthService';
 import { LocationService } from '@/services/LocationService';
 import { FirebaseLocationService } from '@/services/FirebaseLocationService';
+import AccurateMap from './AccurateMap';
 
 interface MapUser {
   id: string;
@@ -40,6 +41,22 @@ interface RealTimeMapProps {
 }
 
 export default function RealTimeMap({ 
+  showControls = false, 
+  filterRole = 'all',
+  height = 400 
+}: RealTimeMapProps) {
+  // Use the new AccurateMap component with Mappls integration
+  return (
+    <AccurateMap 
+      showControls={showControls}
+      filterRole={filterRole}
+      height={height}
+    />
+  );
+}
+
+// Keep the old implementation as fallback
+function LegacyRealTimeMap({ 
   showControls = false, 
   filterRole = 'all',
   height = 400 
@@ -673,7 +690,7 @@ export default function RealTimeMap({
   );
 }
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',

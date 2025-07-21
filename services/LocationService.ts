@@ -52,11 +52,17 @@ class LocationServiceClass {
   startTracking(callback: (location: Location) => void): void {
     this.stopTracking();
 
-    ExpoLocation.watchPositionAsync(
+    try {
+      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Location permission not granted');
+      }
+
+      this.watchSubscription = await ExpoLocation.watchPositionAsync(
       {
         accuracy: ExpoLocation.Accuracy.High,
-        timeInterval: 5000,
-        distanceInterval: 10,
+        timeInterval: options?.interval || 30000,
+        distanceInterval: options?.movementThreshold || 10,
       },
       async (position) => {
         const coords = position.coords;
@@ -73,9 +79,11 @@ class LocationServiceClass {
         };
         callback(location);
       }
-    ).then(subscription => {
-      this.watchSubscription = subscription;
-    });
+      );
+    } catch (error) {
+      console.error('Error starting location tracking:', error);
+      throw error;
+    }
   }
 
   stopTracking(): void {

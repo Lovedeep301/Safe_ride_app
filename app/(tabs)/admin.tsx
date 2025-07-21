@@ -16,7 +16,7 @@ import { router } from 'expo-router';
 import { Users, UserPlus, Settings, LogOut, Search, TriangleAlert as AlertTriangle, MapPin, Shield, Car, X, CircleCheck as CheckCircle, Clock, User, Bell, Lock, CircleHelp as HelpCircle } from 'lucide-react-native';
 import { AuthService } from '@/services/AuthService';
 import { EmergencyService } from '@/services/EmergencyService';
-import RealTimeMap from '@/components/RealTimeMap';
+import AccurateMap from '@/components/AccurateMap';
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
@@ -586,7 +586,7 @@ export default function AdminPanel() {
         {/* Real-time Map */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Real-time Location Tracking</Text>
-          <RealTimeMap showControls={true} height={300} />
+          <AccurateMap showControls={true} height={300} />
         </View>
 
         {/* Users Management */}
