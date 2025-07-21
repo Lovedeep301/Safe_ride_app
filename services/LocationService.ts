@@ -1,4 +1,5 @@
 import * as ExpoLocation from 'expo-location';
+import { MapplsService } from './MapplsService';
 
 export interface Location {
   latitude: number;
@@ -86,9 +87,20 @@ class LocationServiceClass {
 
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
-      const [place] = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-      if (place) {
-        return `${place.name ?? ''}, ${place.city ?? ''}, ${place.region ?? ''}, ${place.country ?? ''}`;
+      // Try Mappls first for more accurate Indian addresses
+      const mapplsLocation = await MapplsService.reverseGeocode(lat, lng);
+      if (mapplsLocation.address && mapplsLocation.address !== `${lat.toFixed(4)}, ${lng.toFixed(4)}`) {
+        return mapplsLocation.address;
+      }
+      
+      // Fallback to Expo Location
+      try {
+        const [place] = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+        if (place) {
+          return `${place.name ?? ''}, ${place.city ?? ''}, ${place.region ?? ''}, ${place.country ?? ''}`;
+        }
+      } catch (expoError) {
+        console.warn('Expo reverse geocoding failed:', expoError);
       }
     } catch (error) {
       console.warn('Geocoding failed:', error);
@@ -100,7 +112,7 @@ class LocationServiceClass {
     return {
       latitude: 28.6139,
       longitude: 77.2090,
-      address: 'Default: New Delhi, India',
+      address: 'New Delhi, India',
       timestamp: Date.now()
     };
   }
