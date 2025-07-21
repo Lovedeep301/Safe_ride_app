@@ -39,7 +39,7 @@ class LocationServiceClass {
         heading: coords.heading,
         speed: coords.speed,
         timestamp: position.timestamp,
-        address: await this.reverseGeocode(coords.latitude, coords.longitude)
+        address: await this.reverseGeocode(coords.latitude, coords.longitude),
       };
 
       return location;
@@ -49,7 +49,10 @@ class LocationServiceClass {
     }
   }
 
-  startTracking(callback: (location: Location) => void): void {
+  async startTracking(
+    callback: (location: Location) => void,
+    options?: { interval?: number; movementThreshold?: number }
+  ): Promise<void> {
     this.stopTracking();
 
     try {
@@ -59,30 +62,29 @@ class LocationServiceClass {
       }
 
       this.watchSubscription = await ExpoLocation.watchPositionAsync(
-      {
-        accuracy: ExpoLocation.Accuracy.High,
-        timeInterval: options?.interval || 30000,
-        distanceInterval: options?.movementThreshold || 10,
-      },
-      async (position) => {
-        const coords = position.coords;
-        const location: Location = {
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          accuracy: coords.accuracy,
-          altitude: coords.altitude,
-          altitudeAccuracy: coords.altitudeAccuracy,
-          heading: coords.heading,
-          speed: coords.speed,
-          timestamp: position.timestamp,
-          address: await this.reverseGeocode(coords.latitude, coords.longitude)
-        };
-        callback(location);
-      }
+        {
+          accuracy: ExpoLocation.Accuracy.High,
+          timeInterval: options?.interval || 30000,
+          distanceInterval: options?.movementThreshold || 10,
+        },
+        async (position) => {
+          const coords = position.coords;
+          const location: Location = {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy,
+            altitude: coords.altitude,
+            altitudeAccuracy: coords.altitudeAccuracy,
+            heading: coords.heading,
+            speed: coords.speed,
+            timestamp: position.timestamp,
+            address: await this.reverseGeocode(coords.latitude, coords.longitude),
+          };
+          callback(location);
+        }
       );
     } catch (error) {
-      console.error('Error starting location tracking:', error);
-      throw error;
+      this.logError(error, 'startTracking');
     }
   }
 
@@ -95,23 +97,19 @@ class LocationServiceClass {
 
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
-      // Try Mappls first for more accurate Indian addresses
+      // First try Mappls
       const mapplsLocation = await MapplsService.reverseGeocode(lat, lng);
-      if (mapplsLocation.address && mapplsLocation.address !== `${lat.toFixed(4)}, ${lng.toFixed(4)}`) {
+      if (mapplsLocation && mapplsLocation.address) {
         return mapplsLocation.address;
       }
-      
-      // Fallback to Expo Location
-      try {
-        const [place] = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-        if (place) {
-          return `${place.name ?? ''}, ${place.city ?? ''}, ${place.region ?? ''}, ${place.country ?? ''}`;
-        }
-      } catch (expoError) {
-        console.warn('Expo reverse geocoding failed:', expoError);
+
+      // Fallback to Expo
+      const [place] = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      if (place) {
+        return `${place.name ?? ''}, ${place.city ?? ''}, ${place.region ?? ''}, ${place.country ?? ''}`;
       }
     } catch (error) {
-      console.warn('Geocoding failed:', error);
+      console.warn('Reverse geocoding failed:', error);
     }
     return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
   }
@@ -120,13 +118,13 @@ class LocationServiceClass {
     return {
       latitude: 28.6139,
       longitude: 77.2090,
-      address: 'New Delhi, India',
-      timestamp: Date.now()
+      address: 'Default Location: New Delhi, India',
+      timestamp: Date.now(),
     };
   }
 
   private logError(error: any, context: string): void {
-    console.error(`[${context}]`, error.message || error);
+    console.error(`[${context}]`, error?.message || error);
   }
 }
 
