@@ -10,42 +10,19 @@ export interface Location {
   heading?: number | null;
   speed?: number | null;
   timestamp: number;
-  address?: string;
-  batteryLevel?: number;
+  address: string;
 }
 
 class LocationServiceClass {
-  private watchSubscription: ExpoLocation.LocationSubscription | null = null;
+  private watchSubscription: any = null;
 
-  async getCurrentLocation(): Promise<Location> {
+  async reverseGeocode(latitude: number, longitude: number): Promise<string> {
     try {
-      const { status } = await ExpoLocation.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        throw new Error('Location permission not granted');
-      }
-
-      const position = await ExpoLocation.getCurrentPositionAsync({
-        accuracy: ExpoLocation.Accuracy.High,
-      });
-
-      const coords = position.coords;
-
-      const location: Location = {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        accuracy: coords.accuracy,
-        altitude: coords.altitude,
-        altitudeAccuracy: coords.altitudeAccuracy,
-        heading: coords.heading,
-        speed: coords.speed,
-        timestamp: position.timestamp,
-        address: await this.reverseGeocode(coords.latitude, coords.longitude),
-      };
-
-      return location;
-    } catch (error: any) {
-      this.logError(error, 'getCurrentLocation');
-      return this.getDefaultLocation();
+      const result = await MapplsService.reverseGeocode(latitude, longitude);
+      return result.address;
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      return `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
     }
   }
 
@@ -64,11 +41,13 @@ class LocationServiceClass {
       this.watchSubscription = await ExpoLocation.watchPositionAsync(
         {
           accuracy: ExpoLocation.Accuracy.High,
-          timeInterval: options?.interval || 30000,
-          distanceInterval: options?.movementThreshold || 10,
+          timeInterval: options?.interval || 30000, // default: 30 seconds
+          distanceInterval: options?.movementThreshold || 10, // default: 10 meters
         },
         async (position) => {
           const coords = position.coords;
+          const address = await this.reverseGeocode(coords.latitude, coords.longitude);
+          
           const location: Location = {
             latitude: coords.latitude,
             longitude: coords.longitude,
@@ -78,7 +57,7 @@ class LocationServiceClass {
             heading: coords.heading,
             speed: coords.speed,
             timestamp: position.timestamp,
-            address: await this.reverseGeocode(coords.latitude, coords.longitude),
+            address,
           };
           callback(location);
         }
@@ -95,36 +74,8 @@ class LocationServiceClass {
     }
   }
 
-  private async reverseGeocode(lat: number, lng: number): Promise<string> {
-    try {
-      // First try Mappls
-      const mapplsLocation = await MapplsService.reverseGeocode(lat, lng);
-      if (mapplsLocation && mapplsLocation.address) {
-        return mapplsLocation.address;
-      }
-
-      // Fallback to Expo
-      const [place] = await ExpoLocation.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-      if (place) {
-        return `${place.name ?? ''}, ${place.city ?? ''}, ${place.region ?? ''}, ${place.country ?? ''}`;
-      }
-    } catch (error) {
-      console.warn('Reverse geocoding failed:', error);
-    }
-    return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-  }
-
-  private getDefaultLocation(): Location {
-    return {
-      latitude: 28.6139,
-      longitude: 77.2090,
-      address: 'Default Location: New Delhi, India',
-      timestamp: Date.now(),
-    };
-  }
-
-  private logError(error: any, context: string): void {
-    console.error(`[${context}]`, error?.message || error);
+  private logError(error: any, context: string) {
+    console.error(`LocationService ${context} error:`, error);
   }
 }
 
